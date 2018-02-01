@@ -1,0 +1,24 @@
+{
+  "name": "inventory-search-service",
+  "version": "1.0.0",
+  "description": "Backazon inventory & search services",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kayfo23/inventory-search-service.git"
+  },
+  "author": "Kayleigh Foley",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kayfo23/inventory-search-service/issues"
+  },
+  "homepage": "https://github.com/kayfo23/inventory-search-service#readme",
+  "dependencies": {
+    "cli-progress": "^1.7.0",
+    "csv-writer": "0.0.3",
+    "faker": "^4.1.0"
+  }
+}

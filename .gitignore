@@ -1,0 +1,8 @@
+# Generated Data
+inventory/database/data/
+
+# Dependency directories
+node_modules/
+
+# npm
+package-lock.json
