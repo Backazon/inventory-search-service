@@ -1,4 +1,5 @@
 
+//INVENTORY DATABASE
 
 /*
 TODO: move to cache (will require POST to cache on daily basis)
@@ -74,6 +75,29 @@ GET request to '/categories', when client clicks on category/department
     {
       [ summarized item objects ]
     }
+*/
+
+
+// SEARCH DATABASE
+
+/*
+TODO; auto-suggestions?
+TODO: send update to user analytics (check with Ben on format)
+GET request to '/queries', when client submits search query in search box
+  Request object from client:
+    {
+      query: keyword string(s)
+    }
+  Response object:
+    {
+      [ summarized item objects ]
+    }
+*/
+
+
+/*
+GET request to '/categories' ?? See above line 67
+
 */
 
 
