@@ -45,6 +45,8 @@ exports.connect = function(url, done) {
 }
 
 exports.get = function() {
+  var collection = state.db.getCollection('inventory')
+  console.log(collection)
   return state.db
 }
 

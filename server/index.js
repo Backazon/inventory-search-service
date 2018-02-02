@@ -1,21 +1,25 @@
 
 const express = require('express')
 const app = express()
+
 //INVENTORY DATABASE
-const inventoryDb = require('../databases/mongo-inventory/index.js')
+// const inventoryDb = require('../databases/mongo-inventory/index.js')
+const MongoClient = require('mongodb').MongoClient
+var inventory
 
 //connect to MongoDB on start
-inventoryDb.connect('mongodb://localhost:27017/backazon', function(err) {
+MongoClient.connect('mongodb://localhost:27017/backazon', (err, client) => {
   if (err) {
     console.log('Unable to connect to Mongo')
     process.exit(1)
   } else {
+    inventory = client.db('backazon').collection('inventory')
+
     app.listen(3000, function() {
       console.log('Listening on port 3000...')
     })
   }
 })
-
 
 /*
 TODO: move to CACHE for Ben & Austin (will require POST to cache on daily basis)
@@ -28,16 +32,20 @@ GET request to '/trending', when client visits Backazon homepage
       [ summarized item objects ]
     }
 */
-app.get('/trending', function(req, res) {
-  var collection = inventoryDb.get().collection('inventory')
+app.get('/trending', (req, res) => {
+  //get list of all departments
+  //iterate over departments and query for top 100 items in each dept
 
-  console.log(req.body);
+  var trendingItems = []
+  
+  inventory.find({ item_id: 1504401 }).limit(100).toArray(function (err, result) {
+    if (err) throw err
 
-  //accumulate top 100 items by department 
+    console.log(result)
+  })
 
-  // collection.find().limit(100).toArray(function(err, docs) {
-  //   res.render('inventory', {trending: docs})
-  // })
+
+  res.sendStatus(200)
 })
 
 /*
