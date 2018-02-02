@@ -1,5 +1,21 @@
 
+const express = require('express')
+const app = express()
 //INVENTORY DATABASE
+const inventoryDb = require('../databases/mongo-inventory/index.js')
+
+//connect to MongoDB on start
+inventoryDb.connect('mongodb://localhost:27017/backazon', function(err) {
+  if (err) {
+    console.log('Unable to connect to Mongo')
+    process.exit(1)
+  } else {
+    app.listen(3000, function() {
+      console.log('Listening on port 3000...')
+    })
+  }
+})
+
 
 /*
 TODO: move to CACHE for Ben & Austin (will require POST to cache on daily basis)
@@ -12,7 +28,17 @@ GET request to '/trending', when client visits Backazon homepage
       [ summarized item objects ]
     }
 */
+app.get('/trending', function(req, res) {
+  var collection = inventoryDb.get().collection('inventory')
 
+  console.log(req.body);
+
+  //accumulate top 100 items by department 
+
+  // collection.find().limit(100).toArray(function(err, docs) {
+  //   res.render('inventory', {trending: docs})
+  // })
+})
 
 /*
 GET request to '/details', when client clicks on product for more info
@@ -38,7 +64,12 @@ TODO: send update to user analytics, format:
     Timestamp : dateTime
   }
 */
+app.get('/details', function(req, res) {
+  //get item id from req object
 
+  var collection = inventoryDb.get().collection('inventory')
+  // collection.find({ item_id: })
+})
 
 /*
 TODO: move to queue (will require GET from queue request)

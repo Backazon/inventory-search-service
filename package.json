@@ -19,6 +19,8 @@
   "dependencies": {
     "cli-progress": "^1.7.0",
     "csv-writer": "0.0.3",
-    "faker": "^4.1.0"
+    "express": "^4.16.2",
+    "faker": "^4.1.0",
+    "mongodb": "^3.0.2"
   }
 }
