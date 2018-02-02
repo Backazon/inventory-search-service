@@ -2,8 +2,8 @@
 //INVENTORY DATABASE
 
 /*
-TODO: move to cache (will require POST to cache on daily basis)
-TODO: send update to user analytics (check with Ben on format)
+TODO: move to CACHE for Ben & Austin (will require POST to cache on daily basis)
+
 GET request to '/trending', when client visits Backazon homepage
   Request object from client: 
     { empty }
@@ -15,16 +15,28 @@ GET request to '/trending', when client visits Backazon homepage
 
 
 /*
-TODO: send update to user analytics (check with Ben on format)
 GET request to '/details', when client clicks on product for more info
-  Request object from client:
-    {
-      itemId: 000000
-    }
-  Response object: 
-    {
-      { full item details object }
-    }
+Request object from client:
+{
+  userId: 000000,
+  itemId: 000000
+}
+Response object: 
+{
+  { full item details object }
+}
+
+TODO: send update to user analytics, format:
+  {
+    UserID    : 123,
+    ProductID : 123,
+    Viewed    : Boolean,
+    Clicked   : Boolean,
+    Purchased : Boolean,
+    Cart      : Boolean,
+    Wishlist  : Boolean,
+    Timestamp : dateTime
+  }
 */
 
 
@@ -40,19 +52,24 @@ POST request to '/newitem', when client submits new item to be hosted on Backazo
 
 
 /*
-TODO: check request object from Chase
+TODO: confirm data object with Chase
+
 POST request to '/sales', when orders service receives new sales transaction
   Request object from orders service: 
-    {
-      itemId: 000000
-      quantity: 00
+    data: {
+      userid: #,
+      items: [
+      {itemid:123, qty:2, rating: 4},
+      {itemid:1234, qty:1, rating: 5}
+      ]
     }
   Response status: 200
 */
 
 
 /*
-TODO: move to cache, confirm Austin's request object
+TODO: move to cache, confirm Austin & Ben's request to '/trending'
+
 GET request to '/trending', when filter service requests trending items of day
   Request object from filter service:
     { empty }
@@ -65,16 +82,19 @@ GET request to '/trending', when filter service requests trending items of day
 
 /*
 TODO: move in ElasticSearch or query from cache?
-TODO: send update to user analytics (check with Ben on format)
+
 GET request to '/categories', when client clicks on category/department
-  Request object from client:
-    {
-      query: category/brand/department string
-    }
-  Response object: 
-    {
-      [ summarized item objects ]
-    }
+Request object from client:
+{
+  query: category/brand/department string
+}
+Response object: 
+{
+  [ summarized item objects ]
+}
+
+TODO: send update to user analytics
+
 */
 
 
@@ -82,16 +102,18 @@ GET request to '/categories', when client clicks on category/department
 
 /*
 TODO; auto-suggestions?
-TODO: send update to user analytics (check with Ben on format)
+
 GET request to '/queries', when client submits search query in search box
-  Request object from client:
-    {
-      query: keyword string(s)
-    }
-  Response object:
-    {
-      [ summarized item objects ]
-    }
+Request object from client:
+{
+  query: keyword string(s)
+}
+Response object:
+{
+  [ summarized item objects ]
+}
+
+TODO: send update to user analytics (TBD - check with Ben on format)
 */
 
 

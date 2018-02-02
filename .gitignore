@@ -1,5 +1,5 @@
-# Generated Data
-databases/inventory/data/
+# Generated data
+databases/mongo-inventory/data/
 
 # Dependency directories
 node_modules/
