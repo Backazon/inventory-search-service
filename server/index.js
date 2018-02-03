@@ -105,7 +105,6 @@ app.get('/details', (req, res) => {
 
     res.status(201).send(doc)
   })
-
 })
 
 /*
@@ -158,7 +157,28 @@ POST request to '/sales', when orders service receives new sales transaction
     }
   Response status: 200
 */
+app.post('/sales', (req, res) => {
 
+  var soldItems = req.body.items 
+  var totalModified = 0
+
+  for (var i = 0; i < soldItems.length; i++) {
+    let itemId = soldItems[i].itemid
+    let qtySold = soldItems[i].qty
+
+    inventory.updateOne({ item_id: parseInt(itemId) }, { $inc: { inventory: -(parseInt(qtySold)) } }, (err, result) => {
+      assert.equal(null, err)
+      assert.equal(1, result.result.nModified)
+    })
+  }
+
+  res.status(201).send('Inventory successfully updated')
+
+  //TESTING
+  //get item's initial inventory 
+  //run update query
+  //check new inventory against original 
+})
 
 /*
 TODO: move to cache, confirm Austin & Ben's request to '/trending'
