@@ -6,11 +6,12 @@ const bodyParser = require('body-parser');
 
 app.use(bodyParser.json());
 
+
 //INVENTORY DATABASE
 // const inventoryDb = require('../databases/mongo-inventory/index.js')
 const MongoClient = require('mongodb').MongoClient
 var db, inventory
-// const departments = require('../databases/mongo-inventory/dataGenerator.js')
+const departments = require('../databases/mongo-inventory/dataGenerator.js')
 
 //connect to MongoDB on start
 MongoClient.connect('mongodb://localhost:27017/backazon', (err, client) => {
@@ -21,13 +22,19 @@ MongoClient.connect('mongodb://localhost:27017/backazon', (err, client) => {
     db = client.db('backazon')
     inventory = db.collection('inventory')
 
+    // // mongo text index
+    // inventory.ensureIndex({name:1, description:1, category:1, subcategory:1, department:1}, () => {
+    //   console.log('Inventory Text Index: name, description, category, subcategory, department')
+    // })
+    // inventory.ensureIndex({ name: "text", description: "text", category: "text", subcategory: "text", department: "text"}, {name: "InventoryTextIndex"})
+
     app.listen(3000, function() {
       console.log('Listening on port 3000...')
     })
   }
 })
 
-/*
+/***************************************************************************
 TODO: move to CACHE for Ben & Austin (will require POST to cache on daily basis)
 
 GET request to '/trending', when client visits Backazon homepage
@@ -38,38 +45,33 @@ GET request to '/trending', when client visits Backazon homepage
       [ summarized item objects ]
     }
 */
-app.get('/trending', async (req, res) => {
-  //get list of all departments
-  //iterate over departments and query for top 100 items in each dept
-  var trendingItems = []
-  
-  function getTrendingItems() {
-    for (var i = 0; i < departments.length; i++) {
-      inventory.find({ department: departments[i] }).sort({ avg_rating: 1 }).limit(100).toArray(function (err, result) {
-        if (err) { 
-          throw err
-        } else {
-          console.log(result);
-          trendingItems.push(result);
-        }
-      })
-    }
-  }
-  try {
-    await getTrendingItems().then(() => {
-      console.log(trendingItems)
-      res.send(trendingItems);
-    })
-  } catch (err) {
-    console.log(err)
-  }
+app.get('/trending', (req, res) => {
 
-  //send back trending items
-  // res.status(201).send(trendingItems)
-  // res.sendStatus(200)
+  inventory
+    .find({ })
+    .sort({ avg_rating: -1, review_count: -1 })
+    .limit(3000)
+    .toArray((err, result) => {
+      if (err) throw err
+      console.log(result)
+      res.send(result)
+    })
+    
 })
 
-/*
+/***************************************************************************
+ TODO: send update to user analytics, format:
+   {
+     UserID    : 123,
+     ProductID : 123,
+     Viewed    : Boolean,
+     Clicked   : Boolean,
+     Purchased : Boolean,
+     Cart      : Boolean,
+     Wishlist  : Boolean,
+     Timestamp : dateTime
+   }
+
 GET request to '/details', when client clicks on product for more info
 Request object from client:
 {
@@ -80,18 +82,6 @@ Response object:
 {
   { full item details object }
 }
-
-TODO: send update to user analytics, format:
-  {
-    UserID    : 123,
-    ProductID : 123,
-    Viewed    : Boolean,
-    Clicked   : Boolean,
-    Purchased : Boolean,
-    Cart      : Boolean,
-    Wishlist  : Boolean,
-    Timestamp : dateTime
-  }
 */
 app.get('/details', (req, res) => {
 
@@ -107,8 +97,9 @@ app.get('/details', (req, res) => {
   })
 })
 
-/*
+/***************************************************************************
 TODO: move to queue (will require GET from queue request)
+
 POST request to '/newitem', when client submits new item to be hosted on Backazon
   Request object from client: 
     {
@@ -143,7 +134,7 @@ app.post('/newitem', (req, res) => {
   })
 })
 
-/*
+/***************************************************************************
 TODO: confirm data object with Chase
 
 POST request to '/sales', when orders service receives new sales transaction
@@ -160,7 +151,6 @@ POST request to '/sales', when orders service receives new sales transaction
 app.post('/sales', (req, res) => {
 
   var soldItems = req.body.items 
-  var totalModified = 0
 
   for (var i = 0; i < soldItems.length; i++) {
     let itemId = soldItems[i].itemid
@@ -180,7 +170,63 @@ app.post('/sales', (req, res) => {
   //check new inventory against original 
 })
 
-/*
+/***************************************************************************
+TODO: move in ElasticSearch or query from cache?
+TODO: send update to user analytics
+
+GET request to '/department', when client clicks on category/department
+Request object from client:
+{
+  query: category/brand/department string
+}
+Response object: 
+{
+  [ summarized item objects ]
+}
+*/
+app.get('/department', (req, res) => {
+  
+  var dept = req.query.department
+  
+  inventory
+    .find({ department: JSON.parse(dept) })
+    .sort({ avg_rating: -1, review_count: -1 })
+    .limit(100)
+    .toArray((err, results) => {
+      if (err) throw err
+      res.status(200).send(results)
+    })
+})
+
+/***************************************************************************
+TODO; auto-suggestions?
+TODO: send update to user analytics (TBD - check with Ben on format)
+
+GET request to '/search', when client submits search query in search box
+Request object from client:
+{
+  query: search string
+}
+Response object:
+{
+  [ summarized item objects ]
+}
+*/
+app.get('/search', (req, res) => {
+
+  var query = req.query.search
+  
+  inventory
+  .find({ $text: { $search: query } })
+  .sort({ avg_rating: -1, review_count: -1 })
+  .limit(100)
+  .toArray((err, results) => {
+    if (err) throw err
+    res.status(200).send(results)
+  })
+})
+
+/***************************************************************************
 TODO: move to cache, confirm Austin & Ben's request to '/trending'
 
 GET request to '/trending', when filter service requests trending items of day
@@ -190,49 +236,6 @@ GET request to '/trending', when filter service requests trending items of day
     { 
       [ summarized item objects ]
     }
-*/
-
-
-/*
-TODO: move in ElasticSearch or query from cache?
-
-GET request to '/categories', when client clicks on category/department
-Request object from client:
-{
-  query: category/brand/department string
-}
-Response object: 
-{
-  [ summarized item objects ]
-}
-
-TODO: send update to user analytics
-
-*/
-
-
-// SEARCH DATABASE
-
-/*
-TODO; auto-suggestions?
-
-GET request to '/queries', when client submits search query in search box
-Request object from client:
-{
-  query: keyword string(s)
-}
-Response object:
-{
-  [ summarized item objects ]
-}
-
-TODO: send update to user analytics (TBD - check with Ben on format)
-*/
-
-
-/*
-GET request to '/categories' ?? See above line 67
-
 */
 
 
