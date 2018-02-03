@@ -11,7 +11,7 @@ app.use(bodyParser.json());
 // const inventoryDb = require('../databases/mongo-inventory/index.js')
 const MongoClient = require('mongodb').MongoClient
 var db, inventory
-const departments = require('../databases/mongo-inventory/dataGenerator.js')
+// const departments = require('../databases/mongo-inventory/dataGenerator.js')
 
 //connect to MongoDB on start
 MongoClient.connect('mongodb://localhost:27017/backazon', (err, client) => {
@@ -56,7 +56,7 @@ app.get('/trending', (req, res) => {
       console.log(result)
       res.send(result)
     })
-    
+
 })
 
 /***************************************************************************

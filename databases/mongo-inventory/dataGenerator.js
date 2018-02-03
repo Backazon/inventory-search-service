@@ -17,7 +17,7 @@ const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 
 const sizes = ['x-small', 'small', 'medium', 'large', 'x-large', 'xx-large'];
 const departments = ["Clothing, Shoes & Jewelry", "Home & Kitchen", "Digital Music", "Books", "Cell Phones & Accessories", "Automotive Parts & Accessories", "Sports & Outdoors", "Tools & Home Improvement", "Collectibles & Fine Art", "Industrial & Scientific", "Electronics", "Baby", "Health, Household & Baby Care", "Office Products", "Toys & Games", "Kindle Store", "Arts, Crafts & Sewing", "CDs & Vinyl", "Garden & Outdoor", "Everything Else", "Beauty & Personal Care", "Pet Supplies", "Grocery & Gourmet Food", "Movies & TV", "Appliances", "Handmade", "Musical Instruments", "Apps & Games", "Video Games", "Software", "Alexa Skills", "Magazine Subscriptions", "Gift Cards", "Courses", "Kindle Accessories", "Home & Business Services"];
-exports.departments = departments
+// exports.departments = departments
 
 // // item creator
 // async function doStuff(n) {
