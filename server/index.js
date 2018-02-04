@@ -2,10 +2,11 @@
 const express = require('express')
 const app = express()
 const assert = require('assert')
-const bodyParser = require('body-parser');
+const bodyParser = require('body-parser')
 
-app.use(bodyParser.json());
+app.use(bodyParser.json())
 
+exports.server
 
 //INVENTORY DATABASE
 // const inventoryDb = require('../databases/mongo-inventory/index.js')
@@ -28,7 +29,7 @@ MongoClient.connect('mongodb://localhost:27017/backazon', (err, client) => {
     // })
     // inventory.ensureIndex({ name: "text", description: "text", category: "text", subcategory: "text", department: "text"}, {name: "InventoryTextIndex"})
 
-    app.listen(3000, function() {
+    server = app.listen(3000, function() {
       console.log('Listening on port 3000...')
     })
   }
@@ -54,7 +55,7 @@ app.get('/trending', (req, res) => {
     .toArray((err, result) => {
       if (err) throw err
       console.log(result)
-      res.send(result)
+      res.status(200).send(result)
     })
 
 })
@@ -93,7 +94,7 @@ app.get('/details', (req, res) => {
     assert.equal(null, err)
     assert.ok(doc != null)
 
-    res.status(201).send(doc)
+    res.status(200).send(doc)
   })
 })
 
@@ -130,7 +131,7 @@ app.post('/newitem', (req, res) => {
     assert.equal(null, err)
     assert.equal(1, result.insertedCount)
 
-    res.status(201).send('New item successfully added')
+    res.status(200).send('New item successfully added')
   })
 })
 
@@ -162,7 +163,7 @@ app.post('/sales', (req, res) => {
     })
   }
 
-  res.status(201).send('Inventory successfully updated')
+  res.status(200).send('Inventory successfully updated')
 
   //TESTING
   //get item's initial inventory 
