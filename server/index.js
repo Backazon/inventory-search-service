@@ -1,16 +1,26 @@
 
 const express = require('express')
 const app = express()
-const assert = require('assert')
-const bodyParser = require('body-parser')
+const bodyParser = require('body-parser').json()
 
 const inventorydb = require('../databases/mongo-inventory')
 
-app.use(bodyParser.json())
 
-exports.server
+// REDIS DATABASE
 
-//INVENTORY DATABASE
+const redis = require('redis')
+var redisClient = redis.createClient()
+redisClient.on('error', (err) => console.log('Redic Client Error: ', err))
+
+// Test Redis DB
+// redisClient.set('test key', 'test value', redis.print)
+// redisClient.get('test key', (err, result) => {
+//   err ? console.log('Redis Error:', err) : console.log('GET results => ', result)
+// }) 
+
+
+// INVENTORY DATABASE
+
 // const inventoryDb = require('../databases/mongo-inventory/index.js')
 const MongoClient = require('mongodb').MongoClient
 var db, inventory
@@ -26,9 +36,6 @@ MongoClient.connect('mongodb://localhost:27017/backazon', (err, client) => {
     inventory = db.collection('inventory')
 
     // // mongo text index
-    // inventory.ensureIndex({name:1, description:1, category:1, subcategory:1, department:1}, () => {
-    //   console.log('Inventory Text Index: name, description, category, subcategory, department')
-    // })
     // inventory.ensureIndex({ name: "text", description: "text", category: "text", subcategory: "text", department: "text"}, {name: "InventoryTextIndex"})
 
     server = app.listen(3000, function() {
