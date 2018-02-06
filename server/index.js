@@ -4,6 +4,8 @@ const app = express()
 const assert = require('assert')
 const bodyParser = require('body-parser')
 
+const inventorydb = require('../databases/mongo-inventory')
+
 app.use(bodyParser.json())
 
 exports.server
@@ -86,15 +88,24 @@ Response object:
 */
 app.get('/details', (req, res) => {
 
-  var itemId = parseInt(req.query.item_id)
+  // var itemId = parseInt(req.query.item_id)
   
-  inventory.findOne({item_id: itemId}, (err, doc) => {
-    if (err) res.status(400).json('Could not find item')
+  // inventory.findOne({item_id: itemId}, (err, doc) => {
+  //   if (err) res.status(400).json('Could not find item')
 
-    assert.equal(null, err)
-    assert.ok(doc != null)
+  //   assert.equal(null, err)
+  //   assert.ok(doc != null)
 
-    res.status(200).send(doc)
+  //   res.status(200).send(doc)
+  // })
+
+  inventorydb.getItemDetails(req.query.item_id, function(err, data) {
+    if (err) {
+      res.sendStatus(500);
+    } else {
+      console.log(data);
+      res.send(data);
+    }
   })
 })
 

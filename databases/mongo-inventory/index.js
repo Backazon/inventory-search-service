@@ -1,11 +1,13 @@
 const mongoose = require('mongoose')
 mongoose.connect('mongodb://localhost/backazon')
 
+const Schema = mongoose.Schema
+
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'))
 db.once('open', () => console.log('Mongoose connected successfully'))
 
-let itemSchema = mongoose.Schema({
+const Item = mongoose.model('Item', new Schema({
   item_id: { type: Number, index: true, unique: true },
   name: String,
   description: String,
@@ -20,14 +22,25 @@ let itemSchema = mongoose.Schema({
   subcategory: String,
   department: String,
   creation_date: String
-})
-
-const Item = mongoose.model('Item', itemSchema)
+}), 'inventory')
 
 //db query functions
+const getItemDetails = function(itemId, callback) {
+  console.log('itemid:', itemId)
+  Item.find({ item_id: itemId }, (err, data) => {
+    // err ? callback(err, null) : callback(null, data)
+    if (err) { 
+      callback(err, null) 
+    } else {
+      console.log('db data', data)
+      callback(null, data)
+    }
+  })
+}
 
 module.exports = {
   //db query function names
+  getItemDetails
 }
 
 
