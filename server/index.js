@@ -50,16 +50,18 @@ GET request to '/trending', when client visits Backazon homepage
 */
 app.get('/trending', (req, res) => {
 
-  inventory
-    .find({ })
-    .sort({ avg_rating: -1, review_count: -1 })
-    .limit(3000)
-    .toArray((err, result) => {
-      if (err) throw err
-      console.log(result)
-      res.status(200).send(result)
-    })
-
+  // inventory
+  //   .find({ })
+  //   .sort({ avg_rating: -1, review_count: -1 })
+  //   .limit(3000)
+  //   .toArray((err, result) => {
+  //     if (err) throw err
+  //     console.log(result)
+  //     res.status(200).send(result)
+  //   })
+  inventorydb.getTrendingItems((err, data) => {
+    err ? res.sendStatus(500) : res.status(200).send(data)
+  })
 })
 
 /***************************************************************************
@@ -99,13 +101,8 @@ app.get('/details', (req, res) => {
   //   res.status(200).send(doc)
   // })
 
-  inventorydb.getItemDetails(req.query.item_id, function(err, data) {
-    if (err) {
-      res.sendStatus(500);
-    } else {
-      console.log(data);
-      res.send(data);
-    }
+  inventorydb.getItemDetails(req.query.item_id, (err, data) => {
+    err ? res.sendStatus(500) : res.status(200).send(data)
   })
 })
 
@@ -128,7 +125,7 @@ app.post('/newitem', (req, res) => {
     price: parseInt(req.body.price),
     color: req.body.color,
     size: req.body.size,
-    inventory: 1,
+    inventory: 100,
     avg_rating: 0,
     review_count: 0,
     image_url: req.body.image_url,
@@ -138,17 +135,19 @@ app.post('/newitem', (req, res) => {
     creation_date: new Date()
   }
 
-  inventory.insertOne(newItem, (err, result) => {
-    assert.equal(null, err)
-    assert.equal(1, result.insertedCount)
+  // inventory.insertOne(newItem, (err, result) => {
+  //   assert.equal(null, err)
+  //   assert.equal(1, result.insertedCount)
 
-    res.status(200).send('New item successfully added')
+  //   res.status(200).send('New item successfully added')
+  // })
+
+  inventorydb.addItemToInventory(newItem, (err, data) => {
+    err ? res.sendStatus(500) : res.status(200).send('New item successfully added')
   })
 })
 
 /***************************************************************************
-TODO: confirm data object with Chase
-
 POST request to '/sales', when orders service receives new sales transaction
   Request object from orders service: 
     data: {
@@ -168,12 +167,15 @@ app.post('/sales', (req, res) => {
     let itemId = soldItems[i].itemid
     let qtySold = soldItems[i].qty
 
-    inventory.updateOne({ item_id: parseInt(itemId) }, { $inc: { inventory: -(parseInt(qtySold)) } }, (err, result) => {
-      assert.equal(null, err)
-      assert.equal(1, result.result.nModified)
+  //   inventory.updateOne({ item_id: parseInt(itemId) }, { $inc: { inventory: -(parseInt(qtySold)) } }, (err, result) => {
+  //     assert.equal(null, err)
+  //     assert.equal(1, result.result.nModified)
+  //   })
+    inventorydb.updateInventory(itemId, qtySold, (err, data) => {
+      err ? console.log(err) : undefined
     })
-  }
 
+  }
   res.status(200).send('Inventory successfully updated')
 
   //TESTING
@@ -198,16 +200,20 @@ Response object:
 */
 app.get('/department', (req, res) => {
   
-  var dept = req.query.department
+  // var dept = req.query.department
   
-  inventory
-    .find({ department: JSON.parse(dept) })
-    .sort({ avg_rating: -1, review_count: -1 })
-    .limit(100)
-    .toArray((err, results) => {
-      if (err) throw err
-      res.status(200).send(results)
-    })
+  // inventory
+  //   .find({ department: JSON.parse(dept) })
+  //   .sort({ avg_rating: -1, review_count: -1 })
+  //   .limit(100)
+  //   .toArray((err, results) => {
+  //     if (err) throw err
+  //     res.status(200).send(results)
+  //   })
+
+  inventorydb.getDepartmentItems(req.query.department, (err, data) => {
+    err ? res.sendStatus(500) : res.status(200).send(data)
+  })
 })
 
 /***************************************************************************
@@ -226,15 +232,18 @@ Response object:
 */
 app.get('/search', (req, res) => {
 
-  var query = req.query.search
+  // var query = req.query.search
   
-  inventory
-  .find({ $text: { $search: query } })
-  .sort({ avg_rating: -1, review_count: -1 })
-  .limit(100)
-  .toArray((err, results) => {
-    if (err) throw err
-    res.status(200).send(results)
+  // inventory
+  // .find({ $text: { $search: query } })
+  // .sort({ avg_rating: -1, review_count: -1 })
+  // .limit(100)
+  // .toArray((err, results) => {
+  //   if (err) throw err
+  //   res.status(200).send(results)
+  // })
+  inventorydb.search(req.query.search, (err, data) => {
+    err ? res.sendStatus(500) : res.status(200).send(data)
   })
 })
 
