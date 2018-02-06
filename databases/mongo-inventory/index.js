@@ -1,3 +1,39 @@
+const mongoose = require('mongoose')
+mongoose.connect('mongodb://localhost/backazon')
+
+const db = mongoose.connection;
+db.on('error', console.error.bind(console, 'connection error:'))
+db.once('open', () => console.log('Mongoose connected successfully'))
+
+let itemSchema = mongoose.Schema({
+  item_id: { type: Number, index: true, unique: true },
+  name: String,
+  description: String,
+  price: Number,
+  color: String,
+  size: String,
+  inventory: Number,
+  avg_rating: Number,
+  review_count: Number,
+  image_url: String,
+  category: String,
+  subcategory: String,
+  department: String,
+  creation_date: String
+})
+
+const Item = mongoose.model('Item', itemSchema)
+
+//db query functions
+
+module.exports = {
+  //db query function names
+}
+
+
+
+//--------------------------------------------------------------
+
 // const MongoClient = require('mongodb').MongoClient
 
 // // const url = 'mongodb://localhost:27017/backazon';
