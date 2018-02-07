@@ -5,6 +5,8 @@ const assert = require('assert')
 const bodyParser = require('body-parser')
 app.use(bodyParser.json())
 
+const CronJob = require('cron').CronJob;
+
 
 // REDIS DATABASE
 const redis = require('redis')
@@ -39,17 +41,35 @@ MongoClient.connect('mongodb://localhost:27017/backazon', (err, client) => {
 TODO: Update trending items in Redis cache on daily basis
 
 */
-app.get('/refresh', (req, res) => {
-  inventory
-    .find({})
-    .sort({ avg_rating: -1, review_count: -1 })
-    .limit(3000)
-    .toArray((err, result) => {
-      if (err) throw err
-      redisClient.set('trending', JSON.stringify(result))
-      res.sendStatus(200)
-    })
+const cronjob = new CronJob({
+  cronTime: '00 00 00 * * *',
+  onTick: () => {
+    console.log('Executing Cron Job', new Date())
+    inventory
+      .find({})
+      .sort({ avg_rating: -1, review_count: -1 })
+      .limit(3000)
+      .toArray((err, result) => {
+        if (err) throw err
+        console.log('Cron job successful', new Date())
+        redisClient.set('trending', JSON.stringify(result))
+      })
+  }, 
+  start: true,
+  timeZone: 'America/Los_Angeles'
 })
+console.log('cronjob status', cronjob.running)
+// app.get('/refresh', (req, res) => {
+//   inventory
+//     .find({})
+//     .sort({ avg_rating: -1, review_count: -1 })
+//     .limit(3000)
+//     .toArray((err, result) => {
+//       if (err) throw err
+//       redisClient.set('trending', JSON.stringify(result))
+//       res.sendStatus(200)
+//     })
+// })
 
 /***************************************************************************
  GET request to '/trending', when client visits Backazon homepage,
