@@ -1,16 +1,20 @@
 const mongoose = require('mongoose')
+const mongoosastic = require('mongoosastic')
+
 mongoose.connect('mongodb://localhost/backazon')
 
-const Schema = mongoose.Schema
+// INSERTING DATA TO MONGO DB
+// Run in terminal for each data csv file
+// mongoimport --db backazon --collection inventory --type csv --headerline --file /data/inventory0.csv
 
-const db = mongoose.connection;
+const db = mongoose.connection
 db.on('error', console.error.bind(console, 'connection error:'))
 db.once('open', () => console.log('Mongoose connected successfully...'))
 
-const Item = mongoose.model('Item', new Schema({
-  item_id: { type: Number, index: true, unique: true },
-  name: { type:String, es_indexed:true },
-  description: { type: String, es_indexed: true },
+const itemSchema = new mongoose.Schema({
+  item_id: { type: Number, index: true, unique: true }, //mongo index
+  name: { type:String, es_indexed:true }, // elasticsearch index
+  description: { type:String, es_indexed:true },
   price: Number,
   color: String,
   size: String,
@@ -18,11 +22,26 @@ const Item = mongoose.model('Item', new Schema({
   avg_rating: Number,
   review_count: Number,
   image_url: String,
-  category: { type: String, es_indexed: true },
-  subcategory: { type: String, es_indexed: true },
-  department: { type: String, es_indexed: true },
+  category: { type:String, es_indexed:true },
+  subcategory: { type:String, es_indexed:true },
+  department: { type:String, es_indexed:true },
   creation_date: String
-}), 'inventory')
+})
+
+itemSchema.plugin(mongoosastic)
+
+var Item = mongoose.model("Item", itemSchema)
+
+// Item.createMapping((err, mapping) => {
+//   if (err) {
+//     console.log('error creating mapping (you can safely ignore this)')
+//     console.log(err)
+//   } else {
+//     console.log('mapping created!')
+//     console.log(mapping)
+//   }
+// })
+
 
 //MONGO DB QUERY HANDLERS
 
@@ -84,20 +103,25 @@ const getDepartmentItems = (department, callback) => {
 }
 
 //search for items by keyword
+// const search = (query, callback) => {
+//   Item
+//     .find({ $text: { $search: query } })
+//     .sort({ avg_rating: -1, review_count: -1 })
+//     .limit(100)
+//     .exec((err, data) => {
+//       err ? callback(err, null) : callback(null, data)
+//     })
+// }
 const search = (query, callback) => {
-  console.log('QUERY', query)
   Item
-    .find({ $text: { $search: query } })
-    .sort({ avg_rating: -1, review_count: -1 })
-    .limit(100)
-    .exec((err, data) => {
-      err ? callback(err, null) : callback(null, data)
+    .search({ query: query }, (err, results) => {
+      console.log(results)
+      err ? callback(err, null) : callback(null, results)
     })
 }
 
 
 module.exports = {
-  //db query function names
   getItemDetails,
   getTrendingItems,
   addItemToInventory,
@@ -105,76 +129,3 @@ module.exports = {
   getDepartmentItems,
   search
 }
-
-
-
-//--------------------------------------------------------------
-
-// const MongoClient = require('mongodb').MongoClient
-
-// // const url = 'mongodb://localhost:27017/backazon';
-
-
-// // //will be called server-side to get item details
-// // const findItemById = function(itemId) {
-
-// //   mongoClient.connect(url, function(err, db) {
-// //     console.log('Connected to MongoDB - Backazon');
-
-// //     var col = db.collection('inventory');
-  
-// //     col.find({ item_id: itemId })
-// //   })
-
-// // }
-
-// // //will be called server-side once for each department 
-// // const pullTrendingItems = function(department) {
-
-// //   mongoClient.connect(url, function (err, db) {
-// //     console.log('Connected to MongoDB - Backazon');
-
-// //     var col = db.collection('inventory');
-
-// //     col.find({ department: department }).limit(100)
-// //   })
-
-// // }
-
-
-// var state = {
-//   db: null,
-// }
-
-// exports.connect = function(url, done) {
-//   if (state.db) return done()
-
-//   MongoClient.connect(url, function(err, db) {
-//     if (err) return done(err)
-//     state.db = db
-//     done()
-//   })
-// }
-
-// exports.get = function() {
-//   var collection = state.db.getCollection('inventory')
-//   console.log(collection)
-//   return state.db
-// }
-
-// exports.close = function(done) {
-//   if (state.db) {
-//     state.db.close(function(err, result) {
-//       state.db = null
-//       state.mode = null
-//       done(err)
-//     })
-//   }
-// }
-
-
-
-// module.exports = {
-//   findItemById,
-//   pullTrendingItems
-// }

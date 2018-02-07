@@ -1,23 +1,40 @@
-const assert = require('assert')
-const server = require('../server/index.js')
+const { expect } = require('chai')
+const chai = require('chai')
+const chaiHttp = require('chai-http')
 
+const server = require('../server')
 
+chai.use(chaiHttp)
 
-describe('inventory server', () => {
+describe('BACKAZON INVENTORY SERVER', () => {
 
   describe('GET /trending', () => {
 
-    it('should return an array of the top 3000 inventory items', () => {
-      
-    })
+    it('should return an array of the top 3000 inventory items', (done) => {
+      chai
+        .request(server)
+        .get('/trending')
+        .end((err, res) => {
+          console.log(res)
+          // expect(res).to.have.status(200)
+          done()
+        })
+    })//.timeout(1000)
 
   })
 
   describe('GET /details', () => {
 
     it('should return an object of the items full details', () => {
-      
-    })
+      chai
+        .request(server)
+        .get('/details')
+        .query({ item_id: 51 })
+        .end((err, res) => {
+          expect(res).to.have.status(200)
+          done()
+        })
+    }).timeout(1000)
 
   })
 
@@ -57,3 +74,4 @@ describe('inventory server', () => {
   })
 
 })
+after(() => process.exit(0))
