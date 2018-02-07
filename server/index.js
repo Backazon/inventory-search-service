@@ -6,7 +6,7 @@ const bodyParser = require('body-parser')
 
 app.use(bodyParser.json())
 
-const inventorydb = require('../databases/mongo-inventory')
+// const inventorydb = require('../databases/mongo-inventory')
 
 
 // REDIS DATABASE
@@ -236,13 +236,13 @@ app.post('/sales', (req, res) => {
     let itemId = soldItems[i].itemid
     let qtySold = soldItems[i].qty
 
-  //   inventory.updateOne({ item_id: parseInt(itemId) }, { $inc: { inventory: -(parseInt(qtySold)) } }, (err, result) => {
-  //     assert.equal(null, err)
-  //     assert.equal(1, result.result.nModified)
-  //   })
-    inventorydb.updateInventory(itemId, qtySold, (err, data) => {
-      err ? console.log(err) : undefined
+    inventory.updateOne({ item_id: parseInt(itemId) }, { $inc: { inventory: -(parseInt(qtySold)) } }, (err, result) => {
+      assert.equal(null, err)
+      assert.equal(1, result.result.nModified)
     })
+    // inventorydb.updateInventory(itemId, qtySold, (err, data) => {
+    //   err ? console.log(err) : undefined
+    // })
 
   }
   res.status(200).send('Inventory successfully updated')
@@ -269,20 +269,20 @@ Response object:
 */
 app.get('/department', (req, res) => {
   
-  // var dept = req.query.department
+  var dept = req.query.department
   
-  // inventory
-  //   .find({ department: JSON.parse(dept) })
-  //   .sort({ avg_rating: -1, review_count: -1 })
-  //   .limit(100)
-  //   .toArray((err, results) => {
-  //     if (err) throw err
-  //     res.status(200).send(results)
-  //   })
+  inventory
+    .find({ department: JSON.parse(dept) })
+    .sort({ avg_rating: -1, review_count: -1 })
+    .limit(100)
+    .toArray((err, results) => {
+      if (err) throw err
+      res.status(200).send(results)
+    })
 
-  inventorydb.getDepartmentItems(req.query.department, (err, data) => {
-    err ? res.sendStatus(500) : res.status(200).send(data)
-  })
+  // inventorydb.getDepartmentItems(req.query.department, (err, data) => {
+  //   err ? res.sendStatus(500) : res.status(200).send(data)
+  // })
 })
 
 /***************************************************************************
@@ -300,32 +300,29 @@ Response object:
 }
 */
 app.get('/search', (req, res) => {
+  //TODO: store recent search results in cache & query first
+  var query = req.query.search
 
-  // var query = req.query.search
-  
-  // inventory
-  // .find({ $text: { $search: query } })
-  // .sort({ avg_rating: -1, review_count: -1 })
-  // .limit(100)
-  // .toArray((err, results) => {
-  //   if (err) throw err
-  //   res.status(200).send(results)
-  // })
-  inventorydb.search(req.query.search, (err, data) => {
-    err ? res.sendStatus(500) : res.status(200).send(data)
-  })
-})
-
-/***************************************************************************
-TODO: move to cache, confirm Austin & Ben's request to '/trending'
-
-GET request to '/trending', when filter service requests trending items of day
-  Request object from filter service:
-    { empty }
-  Response object: 
-    { 
-      [ summarized item objects ]
+  redisClient.get(query, (err, results) => {
+    if (results) {
+      console.log('Recent search returned from cache')
+      res.status(200).send(JSON.parse(results))
+    } else {
+      inventory
+      .find({ $text: { $search: query } })
+      .sort({ avg_rating: -1, review_count: -1 })
+      .limit(100)
+      .toArray((err, results) => {
+        if (err) throw err
+        redisClient.set(query, JSON.stringify(results))
+        res.status(200).send(results)
+      })
     }
-*/
+  })
 
+  // MONGOOSE
+  // inventorydb.search(req.query.search, (err, data) => {
+    //   err ? res.sendStatus(500) : res.status(200).send(data)
+  // })
+})
 
