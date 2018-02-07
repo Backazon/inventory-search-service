@@ -3,29 +3,16 @@ const express = require('express')
 const app = express()
 const assert = require('assert')
 const bodyParser = require('body-parser')
-
 app.use(bodyParser.json())
-
-// const inventorydb = require('../databases/mongo-inventory')
 
 
 // REDIS DATABASE
-
 const redis = require('redis')
 var redisClient = redis.createClient()
 redisClient.on('error', (err) => console.log('Redic Client Error: ', err))
 
-// Test Redis DB
-// check in terminal: $ redis-cli ping
-
-// redisClient.set('test key2', ['test value', 'testval2'], redis.print)
-// redisClient.get('test key2', (err, result) => {
-//   err ? console.log('Redis Error:', err) : console.log('GET results => ', result)
-// }) 
-
 
 // INVENTORY DATABASE
-
 const MongoClient = require('mongodb').MongoClient
 var db, inventory, server
 
@@ -47,10 +34,10 @@ MongoClient.connect('mongodb://localhost:27017/backazon', (err, client) => {
   }
 })
 
-
-
+// REQUEST HANDLERS
 /***************************************************************************
 TODO: Update trending items in Redis cache on daily basis
+
 */
 app.get('/refresh', (req, res) => {
   inventory
@@ -67,10 +54,8 @@ app.get('/refresh', (req, res) => {
 /***************************************************************************
  GET request to '/trending', when client visits Backazon homepage,
  or when filter/analytics request trending items
-
- Response object:
- { [ summarized item objects ] }
-  */
+ Response object: { [ summarized item objects ] }
+*/
 app.get('/trending', (req, res) => {
   redisClient.get('trending', (err, results) => {
     console.log('Redis trending results:', JSON.parse(results))
@@ -79,28 +64,20 @@ app.get('/trending', (req, res) => {
 })
 
 /***************************************************************************
- TODO: send update to user analytics, format:
-   {
-     UserID    : 123,
-     ProductID : 123,
-     Viewed    : Boolean,
-     Clicked   : Boolean,
-     Purchased : Boolean,
-     Cart      : Boolean,
-     Wishlist  : Boolean,
-     Timestamp : dateTime
-   }
-
+TODO: send update to user analytics, format:
+  {
+    UserID    : 123,
+    ProductID : 123,
+    Viewed    : Boolean,
+    Clicked   : Boolean,
+    Purchased : Boolean,
+    Cart      : Boolean,
+    Wishlist  : Boolean,
+    Timestamp : dateTime
+  }
 GET request to '/details', when client clicks on product for more info
-Request object from client:
-{
-  userId: 000000,
-  itemId: 000000
-}
-Response object: 
-{
-  { full item details object }
-}
+Request object:   { item_id: number }
+Response object:  { full item details object }
 */
 app.get('/details', (req, res) => {
   redisClient.get(req.query.item_id, (err, result) => {
@@ -125,11 +102,8 @@ app.get('/details', (req, res) => {
 TODO: move to queue (will require GET from queue request)
 
 POST request to '/newitem', when client submits new item to be hosted on Backazon
-  Request object from client: 
-    {
-      { full product details }
-    }
-  Response status: 200
+Request from client:  { full item details object }
+Response:             200
 */
 app.post('/newitem', (req, res) => {
 
@@ -184,54 +158,44 @@ app.post('/sales', (req, res) => {
     })
   }
   res.status(200).send('Inventory successfully updated')
-
-  //TESTING
-  //get item's initial inventory 
-  //run update query
-  //check new inventory against original 
 })
 
 /***************************************************************************
-TODO: move in ElasticSearch or query from cache?
 TODO: send update to user analytics
 
 GET request to '/department', when client clicks on category/department
-Request object from client:
-{
-  query: category/brand/department string
-}
-Response object: 
-{
-  [ summarized item objects ]
-}
+Request from client:  { query: string }
+Response object:      { [ summarized item objects ] }
 */
 app.get('/department', (req, res) => {
   
   var dept = req.query.department
   
-  inventory
-    .find({ department: JSON.parse(dept) })
-    .sort({ avg_rating: -1, review_count: -1 })
-    .limit(100)
-    .toArray((err, results) => {
-      if (err) throw err
-      res.status(200).send(results)
-    })
+  redisClient.get(dept, (err, results) => {
+    if (results) {
+      console.log('Recent dept search returned from cache')
+      res.status(200). send(JSON.parse(results))
+    } else {
+      inventory
+        .find({ department: JSON.parse(dept) })
+        .sort({ avg_rating: -1, review_count: -1 })
+        .limit(100)
+        .toArray((err, results) => {
+          if (err) throw err
+          redisClient.set(department, JSON.stringify(results))
+          res.status(200).send(results)
+        })
+    }
+  })
 })
 
 /***************************************************************************
-TODO; auto-suggestions?
+TODO; elastic search auto-suggestions?
 TODO: send update to user analytics (TBD - check with Ben on format)
 
 GET request to '/search', when client submits search query in search box
-Request object from client:
-{
-  query: search string
-}
-Response object:
-{
-  [ summarized item objects ]
-}
+Request from client:  { query: string }
+Response object:      { [ summarized item objects ] }
 */
 app.get('/search', (req, res) => {
   //TODO: store recent search results in cache & query first
@@ -243,14 +207,15 @@ app.get('/search', (req, res) => {
       res.status(200).send(JSON.parse(results))
     } else {
       inventory
-      .find({ $text: { $search: query } })
-      .sort({ avg_rating: -1, review_count: -1 })
-      .limit(100)
-      .toArray((err, results) => {
-        if (err) throw err
-        redisClient.set(query, JSON.stringify(results))
-        res.status(200).send(results)
-      })
+        .find({ $text: { $search: query } })
+        .sort({ avg_rating: -1, review_count: -1 })
+        .limit(100)
+        .toArray((err, results) => {
+          if (err) throw err
+          redisClient.set(query, JSON.stringify(results))
+          res.status(200).send(results)
+        })
     }
+  })
 })
 
