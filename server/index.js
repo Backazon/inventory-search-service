@@ -7,6 +7,7 @@ app.use(bodyParser.json())
 
 const CronJob = require('cron').CronJob;
 
+const newItemQueue = require('./newItemQueue.js')
 
 // REDIS DATABASE
 const redis = require('redis')
@@ -37,9 +38,9 @@ MongoClient.connect('mongodb://localhost:27017/backazon', (err, client) => {
 })
 
 // REQUEST HANDLERS
-/***************************************************************************
-TODO: Update trending items in Redis cache on daily basis
 
+/***************************************************************************
+Update trending items in Redis cache on daily basis
 */
 const cronjob = new CronJob({
   cronTime: '00 00 00 * * *',
@@ -119,13 +120,30 @@ app.get('/details', (req, res) => {
 })
 
 /***************************************************************************
-TODO: move to queue (will require GET from queue request)
-
-POST request to '/newitem', when client submits new item to be hosted on Backazon
-Request from client:  { full item details object }
-Response:             200
+POST request to '/submitItem', when client submits new item to be hosted on Backazon
+GET request to '/newItems', when ready to pull new items from queue & add to inventory
+Request from client: 
+  {
+    "item_id": 53,
+    "name": "test",
+    "description": "test",
+    "price": 0,
+    "color": "test",
+    "size": "test",
+    "image_url": "test.png",
+    "category": "test",
+    "subcategory": "test",
+    "department": "test"
+  }
+Response: 200
 */
-app.post('/newitem', (req, res) => {
+
+//USING MESSAGE QUEUE
+// AMAZON SQS
+// https://sqs.us-east-2.amazonaws.com/301033191252/backazon-new-items
+
+// takes user submitted info and adds item to queue
+app.post('/submitItem', (req, res) => {
 
   var newItem = {
     item_id: parseInt(req.body.item_id),
@@ -144,24 +162,63 @@ app.post('/newitem', (req, res) => {
     creation_date: new Date()
   }
 
-  inventory.insertOne(newItem, (err, result) => {
-    assert.equal(null, err)
-    assert.equal(1, result.insertedCount)
+  newItemQueue.enqueue(newItem)
+  res.status(200).send('Item successfully submitted')
+}) 
 
-    res.status(200).send('New item successfully added')
-  })
+// TODO: how often to check queue for new items??
+//retrieve new items from queue and insert to inventory db
+app.get('/newItems', (req, res) => {
+
+  while(newItemQueue.hasItems) {
+    let nextItem = newItemQueue.dequeue();
+    console.log(nextItem)
+
+    inventory.insertOne(nextItem, (err, result) => {
+      assert.equal(null, err)
+      assert.equal(1, result.insertedCount)
+
+      res.status(200).send('New item successfully added')
+    })
+  }
+
 })
+
+// WITHOUT USING MESSAGE QUEUE
+// app.post('/newitem', (req, res) => {
+
+//   var newItem = {
+//     item_id: parseInt(req.body.item_id),
+//     name: req.body.name,
+//     description: req.body.description,
+//     price: parseInt(req.body.price),
+//     color: req.body.color,
+//     size: req.body.size,
+//     inventory: 100,
+//     avg_rating: 0,
+//     review_count: 0,
+//     image_url: req.body.image_url,
+//     category: req.body.category,
+//     subcategory: req.body.subcategory,
+//     department: req.body.department,
+//     creation_date: new Date()
+//   }
+
+//   inventory.insertOne(newItem, (err, result) => {
+//     assert.equal(null, err)
+//     assert.equal(1, result.insertedCount)
+
+//     res.status(200).send('New item successfully added')
+//   })
+// })
 
 /***************************************************************************
 POST request to '/sales', when orders service receives new sales transaction
   Request object from orders service: 
-    data: {
-      userid: #,
-      items: [
-      {itemid:123, qty:2, rating: 4},
-      {itemid:1234, qty:1, rating: 5}
-      ]
-    }
+    data: [ 
+            { userid: 1, itemid: 4476, qty: 5, rating: 1 },
+            { userid: 1, itemid: 4463, qty: 3, rating: 3 } 
+          ]
   Response status: 200
 */
 app.post('/sales', (req, res) => {
