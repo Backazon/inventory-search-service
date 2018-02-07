@@ -7,4 +7,7 @@ node_modules/
 # npm
 package-lock.json
 
+# mongo-connector
+databases/mongo-inventory/mongo-connector
+
 .DS_Store

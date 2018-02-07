@@ -150,11 +150,27 @@ app.get('/details', (req, res) => {
   // })
 
   //MONGOOSE
-  inventorydb.getItemDetails(req.query.item_id, (err, data) => {
-    err ? res.sendStatus(500) : res.status(200).send(data)
+  // inventorydb.getItemDetails(req.query.item_id, (err, data) => {
+  //   err ? res.sendStatus(500) : res.status(200).send(data)
+  // })
+
+  //check redis cache first, if found return, else pull from mongo, return and store in redis
+  redisClient.get(req.query.item_id, (err, result) => {
+    if (result) {
+      console.log('Returned from Redis Cache')
+      res.send(JSON.parse(result))
+    } else {
+      inventory.findOne({ item_id: parseInt(req.query.item_id) }, (err, doc) => {
+        if (err) res.status(400).json('Could not find item')
+
+        assert.equal(null, err)
+        assert.ok(doc != null)
+
+        redisClient.set(req.query.item_id, JSON.stringify(doc))
+        res.status(200).send(doc)
+      })
+    }
   })
-
-
 
 })
 
