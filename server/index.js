@@ -26,10 +26,8 @@ redisClient.on('error', (err) => console.log('Redic Client Error: ', err))
 
 // INVENTORY DATABASE
 
-// const inventoryDb = require('../databases/mongo-inventory/index.js')
 const MongoClient = require('mongodb').MongoClient
 var db, inventory, server
-// const departments = require('../databases/mongo-inventory/dataGenerator.js')
 
 //connect to MongoDB on start
 MongoClient.connect('mongodb://localhost:27017/backazon', (err, client) => {
@@ -53,11 +51,8 @@ MongoClient.connect('mongodb://localhost:27017/backazon', (err, client) => {
 
 /***************************************************************************
 TODO: Update trending items in Redis cache on daily basis
-
-// get trending items
 */
 app.get('/refresh', (req, res) => {
-  // NATIVE
   inventory
     .find({})
     .sort({ avg_rating: -1, review_count: -1 })
@@ -67,16 +62,6 @@ app.get('/refresh', (req, res) => {
       redisClient.set('trending', JSON.stringify(result))
       res.sendStatus(200)
     })
-
-  // MONGOOSE
-  // inventorydb.getTrendingItems((err, data) => {
-  //   if (err) {
-  //     console.log('Error updating trending items cache', err)
-  //   } else {
-  //     console.log('trending data:', data)
-  //     redisClient.set('trending', data, redis.print)
-  //   }
-  // })
 })
 
 /***************************************************************************
@@ -87,24 +72,6 @@ app.get('/refresh', (req, res) => {
  { [ summarized item objects ] }
   */
 app.get('/trending', (req, res) => {
-    
-  // NATIVE
-  // inventory
-  //   .find({ })
-  //   .sort({ avg_rating: -1, review_count: -1 })
-  //   .limit(3000)
-  //   .toArray((err, result) => {
-    //     if (err) throw err
-    //     console.log(result)
-    //     res.status(200).send(result)
-    //   })
-    
-    // MONGOOSE
-    // inventorydb.getTrendingItems((err, data) => {
-      //   err ? res.sendStatus(500) : res.status(200).send(data)
-      // })
-      
-    // **REDIS CACHE**
   redisClient.get('trending', (err, results) => {
     console.log('Redis trending results:', JSON.parse(results))
     err ? res.sendState(500) : res.status(200).send(JSON.parse(results))
@@ -136,25 +103,6 @@ Response object:
 }
 */
 app.get('/details', (req, res) => {
-
-  //NATIVE MONGO
-  // var itemId = parseInt(req.query.item_id)
-  
-  // inventory.findOne({item_id: itemId}, (err, doc) => {
-  //   if (err) res.status(400).json('Could not find item')
-
-  //   assert.equal(null, err)
-  //   assert.ok(doc != null)
-
-  //   res.status(200).send(doc)
-  // })
-
-  //MONGOOSE
-  // inventorydb.getItemDetails(req.query.item_id, (err, data) => {
-  //   err ? res.sendStatus(500) : res.status(200).send(data)
-  // })
-
-  //check redis cache first, if found return, else pull from mongo, return and store in redis
   redisClient.get(req.query.item_id, (err, result) => {
     if (result) {
       console.log('Returned from Redis Cache')
@@ -171,7 +119,6 @@ app.get('/details', (req, res) => {
       })
     }
   })
-
 })
 
 /***************************************************************************
@@ -209,11 +156,6 @@ app.post('/newitem', (req, res) => {
 
     res.status(200).send('New item successfully added')
   })
-
-  //CHECK THAT THESE ARE ADDED TO THE INVENTORY DB
-  // inventorydb.addItemToInventory(newItem, (err, data) => {
-  //   err ? res.sendStatus(500) : res.status(200).send('New item successfully added')
-  // })
 })
 
 /***************************************************************************
@@ -240,10 +182,6 @@ app.post('/sales', (req, res) => {
       assert.equal(null, err)
       assert.equal(1, result.result.nModified)
     })
-    // inventorydb.updateInventory(itemId, qtySold, (err, data) => {
-    //   err ? console.log(err) : undefined
-    // })
-
   }
   res.status(200).send('Inventory successfully updated')
 
@@ -279,10 +217,6 @@ app.get('/department', (req, res) => {
       if (err) throw err
       res.status(200).send(results)
     })
-
-  // inventorydb.getDepartmentItems(req.query.department, (err, data) => {
-  //   err ? res.sendStatus(500) : res.status(200).send(data)
-  // })
 })
 
 /***************************************************************************
@@ -318,11 +252,5 @@ app.get('/search', (req, res) => {
         res.status(200).send(results)
       })
     }
-  })
-
-  // MONGOOSE
-  // inventorydb.search(req.query.search, (err, data) => {
-    //   err ? res.sendStatus(500) : res.status(200).send(data)
-  // })
 })
 
