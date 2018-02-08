@@ -1,45 +1,31 @@
-
+const nr = require('newrelic')
 const express = require('express')
 const app = express()
 const assert = require('assert')
 const bodyParser = require('body-parser')
-app.use(bodyParser.json())
 
 const PORT = 3000
 
 app.listen(PORT, () => {
   console.log(`listening on port ${PORT}...`)
 })
+app.use(bodyParser.json())
+
 
 const CronJob = require('cron').CronJob;
 
 // QUEUE
 const newItemQueue = require('./newItemQueue.js')
 
-// REDIS DATABASE
-const redisCache = require('../database/redis')
-
+// REDIS DATABASES
+const recentDeptSearchesRedisCache = require('../database/redis/recentDeptSearches')
+const recentSearchesRedisCache = require('../database/redis/recentSearches')
+const recentViewsRedisCache = require('../database/redis/recentViews')
+const trendingItemsRedisCache = require('../database/redis/trendingItems')
 
 // INVENTORY DATABASE
 const mongoInventory = require('../database/mongo')
 
-// const MongoClient = require('mongodb').MongoClient
-// var db, inventory, server
-
-// //connect to MongoDB on start
-// MongoClient.connect('mongodb://localhost:27017/backazon', (err, client) => {
-//   if (err) {
-//     console.log('Unable to connect to Mongo')
-//     process.exit(1)
-//   } else {
-//     db = client.db('backazon')
-//     inventory = db.collection('inventory')
-
-//     server = app.listen(3000, function() {
-//       console.log('Listening on port 3000...')
-//     })
-//   }
-// })
 
 // REQUEST HANDLERS
 
@@ -51,21 +37,12 @@ const cronjob = new CronJob({
   onTick: () => {
     console.log('Executing Cron Job', new Date())
 
-    mongoInventory.getTrendingItems((err, results) => {
+    mongoInventory.getTrendingItems(async (err, results) => {
       if (err) throw err
       console.log('Cron job successful', new Date())
-      redisCache.updateTrendingItemsList(JSON.stringify(results))
+      await trendingItemsRedisCache.flushDatabase()
+      await trendingItemsRedisCache.updateTrendingItemsList(JSON.stringify(results))
     })
-
-    // inventory
-    //   .find({})
-    //   .sort({ avg_rating: -1, review_count: -1 })
-    //   .limit(3000)
-    //   .toArray((err, result) => {
-    //     if (err) throw err
-    //     console.log('Cron job successful', new Date())
-    //     redisCache.updateTrendingItemsList(JSON.stringify(result))
-    //   })
   }, 
   start: true,
   timeZone: 'America/Los_Angeles'
@@ -78,7 +55,7 @@ const cronjob = new CronJob({
 */
 app.get('/trending', async (req, res) => {
 
-  let trendingList = await redisCache.getTrendingItemsList()
+  let trendingList = await trendingItemsRedisCache.getTrendingItemsList()
 
   if (trendingList) {
     return res.status(200).send(JSON.parse(trendingList))
@@ -107,14 +84,13 @@ app.get('/details', async (req, res) => {
   var item_id = req.query.item_id
 
   try {
-    let item = await redisCache.getRecentlyViewedItem(item_id)
+    let item = await recentViewsRedisCache.getRecentlyViewedItem(item_id)
     if (!item) {
-      // inventory.findOne({ item_id: parseInt(req.query.item_id) }, (err, doc) => {
       mongoInventory.findItem(parseInt(item_id), (err, result) => {
         if (err) res.status(400).json('Could not find item')
 
         item = result
-        redisCache.storeRecentlyViewedItem(item_id, JSON.stringify(item))
+        recentViewsRedisCache.storeRecentlyViewedItem(item_id, JSON.stringify(item))
         return res.status(200).send(item)
       })
     } else {
@@ -183,9 +159,6 @@ app.get('/newItems', (req, res) => {
     mongoInventory.insertNewItem(nextItem, (err, result) => {
       res.status(200).send(nextItem)
     })
-    // inventory.insertOne(nextItem, (err, result) => {
-    //   res.status(200).send(nextItem)
-    // })
   }
 })
 
@@ -238,10 +211,6 @@ app.post('/sales', (req, res) => {
       assert.equal(null, err)
       assert.equal(1, result.result.nModified)
     })
-    // inventory.updateOne({ item_id: parseInt(itemId) }, { $inc: { inventory: -(parseInt(qtySold)) } }, (err, result) => {
-    //   assert.equal(null, err)
-    //   assert.equal(1, result.result.nModified)
-    // })
   }
   res.status(200).send('Inventory successfully updated')
 })
@@ -257,28 +226,15 @@ app.get('/department', async (req, res) => {
   var dept = req.query.department
   
   try {
-    let deptList = await redisCache.getRecentDepartmentSearch(dept)
+    let deptList = await recentDeptSearchesRedisCache.getRecentDepartmentSearch(dept)
     if (!deptList) {
       mongoInventory.getDepartmentList(dept, (err, results) => {
         if (err) throw err
         deptList = results
-        redisCache.storeRecentDepartmentSearch(dept, deptList)
+        recentDeptSearchesRedisCache.storeRecentDepartmentSearch(dept, deptList)
         return res.status(200).send(deptList)
       })
-      // inventory
-      //   .find({ department: JSON.parse(dept) })
-      //   .sort({ avg_rating: -1, review_count: -1 })
-      //   .limit(100)
-      //   .toArray((err, results) => {
-      //     if (err) throw err
-
-      //     deptList = results
-      //     redisCache.storeRecentDepartmentSearch(dept, JSON.stringify(results))
-      //     return res.status(200).send(deptList)
-      //   })
     } else {
-      deptList = JSON.parse(deptList)
-      console.log(typeof deptList)
       return res.status(200).send(JSON.parse(deptList))
     }  
   } catch (err) {
@@ -298,26 +254,15 @@ app.get('/search', async (req, res) => {
   var query = req.query.search
 
   try {
-    let searchResults = await redisCache.getRecentSearchResults(query)
+    let searchResults = await recentSearchesRedisCache.getRecentSearchResults(query)
     if (!searchResults) {
       mongoInventory.search(query, (err, results) => {
         if (err) throw err
 
         searchResults = results
-        redisCache.storeRecentSearchResults(query, searchResults)
+        recentSearchesRedisCache.storeRecentSearchResults(query, searchResults)
         return res.status(200).send(searchResults)
       })
-      // inventory
-      //   .find({ $text: { $search: query } })
-      //   .sort({ avg_rating: -1, review_count: -1 })
-      //   .limit(100)
-      //   .toArray((err, results) => {
-      //     if (err) throw err
-
-      //     searchResults = results
-      //     redisCache.storeRecentSearchResults(query, searchResults)
-      //     return res.status(200).send(searchResults)
-      //   })
     } else {
       return res.status(200).send(JSON.parse(searchResults))
     }
