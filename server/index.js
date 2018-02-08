@@ -5,38 +5,41 @@ const assert = require('assert')
 const bodyParser = require('body-parser')
 app.use(bodyParser.json())
 
+const PORT = 3000
+
+app.listen(PORT, () => {
+  console.log(`listening on port ${PORT}...`)
+})
+
 const CronJob = require('cron').CronJob;
 
+// QUEUE
 const newItemQueue = require('./newItemQueue.js')
 
 // REDIS DATABASE
-const redis = require('../database/redis')
-// const redis = require('redis')
-// var redisClient = redis.createClient()
-// redisClient.on('error', (err) => console.log('Redis Client Error: ', err))
+const redisCache = require('../database/redis')
 
 
 // INVENTORY DATABASE
-const MongoClient = require('mongodb').MongoClient
-var db, inventory, server
+const mongoInventory = require('../database/mongo')
 
-//connect to MongoDB on start
-MongoClient.connect('mongodb://localhost:27017/backazon', (err, client) => {
-  if (err) {
-    console.log('Unable to connect to Mongo')
-    process.exit(1)
-  } else {
-    db = client.db('backazon')
-    inventory = db.collection('inventory')
+// const MongoClient = require('mongodb').MongoClient
+// var db, inventory, server
 
-    // // mongo text index
-    // inventory.ensureIndex({ name: "text", description: "text", category: "text", subcategory: "text", department: "text"}, {name: "InventoryTextIndex"})
+// //connect to MongoDB on start
+// MongoClient.connect('mongodb://localhost:27017/backazon', (err, client) => {
+//   if (err) {
+//     console.log('Unable to connect to Mongo')
+//     process.exit(1)
+//   } else {
+//     db = client.db('backazon')
+//     inventory = db.collection('inventory')
 
-    server = app.listen(3000, function() {
-      console.log('Listening on port 3000...')
-    })
-  }
-})
+//     server = app.listen(3000, function() {
+//       console.log('Listening on port 3000...')
+//     })
+//   }
+// })
 
 // REQUEST HANDLERS
 
@@ -47,16 +50,22 @@ const cronjob = new CronJob({
   cronTime: '00 00 00 * * *',
   onTick: () => {
     console.log('Executing Cron Job', new Date())
-    inventory
-      .find({})
-      .sort({ avg_rating: -1, review_count: -1 })
-      .limit(3000)
-      .toArray((err, result) => {
-        if (err) throw err
-        console.log('Cron job successful', new Date())
-        redis.updateTrendingItemsList(JSON.stringify(result))
-        // redisClient.set('trending', JSON.stringify(result))
-      })
+
+    mongoInventory.getTrendingItems((err, results) => {
+      if (err) throw err
+      console.log('Cron job successful', new Date())
+      redisCache.updateTrendingItemsList(JSON.stringify(results))
+    })
+
+    // inventory
+    //   .find({})
+    //   .sort({ avg_rating: -1, review_count: -1 })
+    //   .limit(3000)
+    //   .toArray((err, result) => {
+    //     if (err) throw err
+    //     console.log('Cron job successful', new Date())
+    //     redisCache.updateTrendingItemsList(JSON.stringify(result))
+    //   })
   }, 
   start: true,
   timeZone: 'America/Los_Angeles'
@@ -69,17 +78,13 @@ const cronjob = new CronJob({
 */
 app.get('/trending', async (req, res) => {
 
-  let trendingList = await redis.getTrendingItemsList()
+  let trendingList = await redisCache.getTrendingItemsList()
+
   if (trendingList) {
     return res.status(200).send(JSON.parse(trendingList))
   } else {
-    return res.status(500).json(err.stack)
+    return res.status(500).send('Error updating trending items in cache')
   }
-
-  // redisClient.get('trending', (err, results) => {
-  //   console.log('Redis trending results:', JSON.parse(results))
-  //   err ? res.sendState(500) : res.status(200).send(JSON.parse(results))
-  // })
 })
 
 /***************************************************************************
@@ -102,13 +107,14 @@ app.get('/details', async (req, res) => {
   var item_id = req.query.item_id
 
   try {
-    let item = await redis.getRecentlyViewedItem(item_id)
+    let item = await redisCache.getRecentlyViewedItem(item_id)
     if (!item) {
-      inventory.findOne({ item_id: parseInt(req.query.item_id) }, (err, doc) => {
+      // inventory.findOne({ item_id: parseInt(req.query.item_id) }, (err, doc) => {
+      mongoInventory.findItem(parseInt(item_id), (err, result) => {
         if (err) res.status(400).json('Could not find item')
 
-        item = doc
-        redis.storeRecentlyViewedItem(item_id, JSON.stringify(item))
+        item = result
+        redisCache.storeRecentlyViewedItem(item_id, JSON.stringify(item))
         return res.status(200).send(item)
       })
     } else {
@@ -118,24 +124,6 @@ app.get('/details', async (req, res) => {
   } catch (err) {
     return res.status(500).json(err.stack)
   }
-
-  // redisClient.get(req.query.item_id, (err, result) => {
-  //   if (result) {
-  //     console.log('Returned from Redis Cache')
-  //     res.send(JSON.parse(result))
-  //   } else {
-  //     inventory.findOne({ item_id: parseInt(req.query.item_id) }, (err, doc) => {
-  //       if (err) res.status(400).json('Could not find item')
-
-  //       assert.equal(null, err)
-  //       assert.ok(doc != null)
-
-
-  //       redisClient.set(req.query.item_id, JSON.stringify(doc))
-  //       res.status(200).send(doc)
-  //     })
-  //   }
-  // })
 })
 
 /***************************************************************************
@@ -192,9 +180,12 @@ app.get('/newItems', (req, res) => {
   while(newItemQueue.size() > 0) {
     let nextItem = newItemQueue.dequeue();
 
-    inventory.insertOne(nextItem, (err, result) => {
+    mongoInventory.insertNewItem(nextItem, (err, result) => {
       res.status(200).send(nextItem)
     })
+    // inventory.insertOne(nextItem, (err, result) => {
+    //   res.status(200).send(nextItem)
+    // })
   }
 })
 
@@ -243,10 +234,14 @@ app.post('/sales', (req, res) => {
     let itemId = soldItems[i].itemid
     let qtySold = soldItems[i].qty
 
-    inventory.updateOne({ item_id: parseInt(itemId) }, { $inc: { inventory: -(parseInt(qtySold)) } }, (err, result) => {
+    mongoInventory.updateInventory(itemId, qtySold, (err, result) => {
       assert.equal(null, err)
       assert.equal(1, result.result.nModified)
     })
+    // inventory.updateOne({ item_id: parseInt(itemId) }, { $inc: { inventory: -(parseInt(qtySold)) } }, (err, result) => {
+    //   assert.equal(null, err)
+    //   assert.equal(1, result.result.nModified)
+    // })
   }
   res.status(200).send('Inventory successfully updated')
 })
@@ -262,42 +257,33 @@ app.get('/department', async (req, res) => {
   var dept = req.query.department
   
   try {
-    let deptList = await redis.getRecentDepartmentSearch(dept)
+    let deptList = await redisCache.getRecentDepartmentSearch(dept)
     if (!deptList) {
-      inventory
-        .find({ department: JSON.parse(dept) })
-        .sort({ avg_rating: -1, review_count: -1 })
-        .limit(100)
-        .toArray((err, results) => {
-          if (err) throw err
+      mongoInventory.getDepartmentList(dept, (err, results) => {
+        if (err) throw err
+        deptList = results
+        redisCache.storeRecentDepartmentSearch(dept, deptList)
+        return res.status(200).send(deptList)
+      })
+      // inventory
+      //   .find({ department: JSON.parse(dept) })
+      //   .sort({ avg_rating: -1, review_count: -1 })
+      //   .limit(100)
+      //   .toArray((err, results) => {
+      //     if (err) throw err
 
-          deptList = results
-          redis.storeRecentDepartmentSearch(dept, JSON.stringify(results))
-          return res.status(200).send(deptList)
-        })
+      //     deptList = results
+      //     redisCache.storeRecentDepartmentSearch(dept, JSON.stringify(results))
+      //     return res.status(200).send(deptList)
+      //   })
     } else {
+      deptList = JSON.parse(deptList)
+      console.log(typeof deptList)
       return res.status(200).send(JSON.parse(deptList))
     }  
   } catch (err) {
     return res.status(500).json(err.stack)
   }
-
-  // redisClient.get(dept, (err, results) => {
-  //   if (results) {
-  //     console.log('Recent dept search returned from cache')
-  //     res.status(200). send(JSON.parse(results))
-  //   } else {
-  //     inventory
-  //       .find({ department: JSON.parse(dept) })
-  //       .sort({ avg_rating: -1, review_count: -1 })
-  //       .limit(100)
-  //       .toArray((err, results) => {
-  //         if (err) throw err
-  //         redisClient.set(department, JSON.stringify(results))
-  //         res.status(200).send(results)
-  //       })
-  //   }
-  // })
 })
 
 /***************************************************************************
@@ -312,41 +298,31 @@ app.get('/search', async (req, res) => {
   var query = req.query.search
 
   try {
-    let searchResults = await redis.getRecentSearchResults(query)
+    let searchResults = await redisCache.getRecentSearchResults(query)
     if (!searchResults) {
-      inventory
-        .find({ $text: { $search: query } })
-        .sort({ avg_rating: -1, review_count: -1 })
-        .limit(100)
-        .toArray((err, results) => {
-          if (err) throw err
+      mongoInventory.search(query, (err, results) => {
+        if (err) throw err
 
-          searchResults = results
-          redis.storeRecentSearchResults(query, searchResults)
-          return res.status(200).send(searchResults)
-        })
+        searchResults = results
+        redisCache.storeRecentSearchResults(query, searchResults)
+        return res.status(200).send(searchResults)
+      })
+      // inventory
+      //   .find({ $text: { $search: query } })
+      //   .sort({ avg_rating: -1, review_count: -1 })
+      //   .limit(100)
+      //   .toArray((err, results) => {
+      //     if (err) throw err
+
+      //     searchResults = results
+      //     redisCache.storeRecentSearchResults(query, searchResults)
+      //     return res.status(200).send(searchResults)
+      //   })
     } else {
       return res.status(200).send(JSON.parse(searchResults))
     }
   } catch (err) {
     return res.status(500).json(err.stack)
   }
-
-  // redisClient.get(query, (err, results) => {
-  //   if (results) {
-  //     console.log('Recent search returned from cache')
-  //     res.status(200).send(JSON.parse(results))
-  //   } else {
-  //     inventory
-  //       .find({ $text: { $search: query } })
-  //       .sort({ avg_rating: -1, review_count: -1 })
-  //       .limit(100)
-  //       .toArray((err, results) => {
-  //         if (err) throw err
-  //         redisClient.set(query, JSON.stringify(results))
-  //         res.status(200).send(results)
-  //       })
-  //   }
-  // })
 })
 
