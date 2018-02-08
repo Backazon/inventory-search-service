@@ -1,0 +1,57 @@
+config:
+  target: "https://127.0.0.1:3000"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm up the application"
+    - duration: 120
+      arrivalRate: 5
+      rampTo: 50
+    - duration: 600
+      arrivalRate: 50
+      name: "Sustained max load"
+  # payload:
+  #   path: "keywords.csv"
+  #   fields:
+  #     - "keywords"
+scenarios:
+  - name: "Search trending & view top product"
+    flow:
+      - get:
+          url: "/trending"
+          capture:
+            json: "$.results[0].item_id"
+            as: "item_id"
+      - get:
+          url: "/details/?item_id={{ item_id }}"
+
+  # - name: "Search by department & view top product"
+  #   flow:
+  #     - get:
+  #         url: "/deparment"
+  #         capture:
+  #           json: "$.results[0].item_id"
+  #           as: "item_id"
+  #     - get:
+  #         url: "/details/?item_id={{ item_id }}"
+
+  # - name: "Submit new item to inventory queue"
+  #   flow: 
+  #     - post: 
+  #         url: "/submitItem"
+
+  # - name: "Search by keyword & view top product"
+  #   flow:
+  #     - post:
+  #         url: "/search"
+  #         body: "kw={{ keywords }}"
+  #         capture:
+  #           json: "$.results[0].id"
+  #           as: "id"
+  #     - get:
+  #         url: "/details/{{ id }}"
+  #     - think: 3
+  #     - post:
+  #         url: "/cart"
+  #         json:
+  #           productId: "{{ id }}"
