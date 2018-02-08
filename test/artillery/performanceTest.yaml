@@ -1,5 +1,5 @@
 config:
-  target: "https://127.0.0.1:3000"
+  target: "http://127.0.0.1:3000"
   phases:
     - duration: 60
       arrivalRate: 5
@@ -10,10 +10,16 @@ config:
     - duration: 600
       arrivalRate: 50
       name: "Sustained max load"
-  # payload:
-  #   path: "keywords.csv"
-  #   fields:
-  #     - "keywords"
+  payload:
+    -
+      path: "payloads/departments.csv"
+      fields:
+        - "department"
+    # - 
+    #   path: "payloads/keywords.csv"
+    #   fields:
+    #     - "keyword"
+
 scenarios:
   - name: "Search trending & view top product"
     flow:
@@ -23,17 +29,18 @@ scenarios:
             json: "$.results[0].item_id"
             as: "item_id"
       - get:
-          url: "/details/?item_id={{ item_id }}"
+          url: "/details/{{ item_id }}"
 
-  # - name: "Search by department & view top product"
-  #   flow:
-  #     - get:
-  #         url: "/deparment"
-  #         capture:
-  #           json: "$.results[0].item_id"
-  #           as: "item_id"
-  #     - get:
-  #         url: "/details/?item_id={{ item_id }}"
+  - name: "Search by department & view top product"
+    flow:
+      - get:
+          url: "/department"
+          body: "department={{ department}}"
+          capture:
+            json: "$.results[0].item_id"
+            as: "item_id"
+      - get:
+          url: "/details/{{ item_id }}"
 
   # - name: "Submit new item to inventory queue"
   #   flow: 
