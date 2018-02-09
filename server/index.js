@@ -16,19 +16,13 @@ const CronJob = require('cron').CronJob;
 
 // QUEUE
 const newItemQueue = require('./newItemQueue.js')
-
-// REDIS DATABASES
-const recentDeptSearchesRedisCache = require('../database/redis/recentDeptSearches')
-const recentSearchesRedisCache = require('../database/redis/recentSearches')
-const recentViewsRedisCache = require('../database/redis/recentViews')
-const trendingItemsRedisCache = require('../database/redis/trendingItems')
-
+// REDIS DATABASE
+const redis = require('../database/redis')
 // INVENTORY DATABASE
 const mongoInventory = require('../database/mongo')
 
 
 // REQUEST HANDLERS
-
 /***************************************************************************
 Update trending items in Redis cache on daily basis
 */
@@ -40,8 +34,8 @@ const cronjob = new CronJob({
     mongoInventory.getTrendingItems(async (err, results) => {
       if (err) throw err
       console.log('Cron job successful', new Date())
-      await trendingItemsRedisCache.flushDatabase()
-      await trendingItemsRedisCache.updateTrendingItemsList(JSON.stringify(results))
+      await redis.flushDatabase()
+      await redis.updateTrendingItemsList(results)
     })
   }, 
   start: true,
@@ -54,13 +48,15 @@ const cronjob = new CronJob({
  Response object: { [ summarized item objects ] }
 */
 app.get('/trending', async (req, res) => {
-
-  let trendingList = await trendingItemsRedisCache.getTrendingItemsList()
-
-  if (trendingList) {
-    return res.status(200).send(JSON.parse(trendingList))
-  } else {
-    return res.status(500).send('Error updating trending items in cache')
+  try {
+    let trendingList = await redis.getTrendingItemsList()
+    if (trendingList) {
+      return res.status(200).send(JSON.parse(trendingList))
+    } else {
+      return res.status(500).send('Error updating trending items in cache')
+    }
+  } catch (err) {
+    return res.status(500).json(err.stack)
   }
 })
 
@@ -84,13 +80,13 @@ app.get('/details', async (req, res) => {
   var item_id = req.query.item_id
 
   try {
-    let item = await recentViewsRedisCache.getRecentlyViewedItem(item_id)
+    let item = await redis.getRecentlyViewedItem(item_id)
     if (!item) {
       mongoInventory.findItem(parseInt(item_id), (err, result) => {
         if (err) res.status(400).json('Could not find item')
 
         item = result
-        recentViewsRedisCache.storeRecentlyViewedItem(item_id, JSON.stringify(item))
+        redis.storeRecentlyViewedItem(item_id, JSON.stringify(item))
         return res.status(200).send(item)
       })
     } else {
@@ -191,6 +187,8 @@ app.get('/newItems', (req, res) => {
 // })
 
 /***************************************************************************
+TODO: turn into GET request to sales queue
+
 POST request to '/sales', when orders service receives new sales transaction
   Request object from orders service: 
     data: [ 
@@ -224,14 +222,15 @@ Response object:      { [ summarized item objects ] }
 */
 app.get('/department', async (req, res) => {
   var dept = req.query.department
+  console.log(dept)
   
   try {
-    let deptList = await recentDeptSearchesRedisCache.getRecentDepartmentSearch(dept)
+    let deptList = await redis.getRecentDepartmentSearch(dept)
     if (!deptList) {
       mongoInventory.getDepartmentList(dept, (err, results) => {
         if (err) throw err
         deptList = results
-        recentDeptSearchesRedisCache.storeRecentDepartmentSearch(dept, deptList)
+        redis.storeRecentDepartmentSearch(dept, deptList)
         return res.status(200).send(deptList)
       })
     } else {
@@ -254,13 +253,13 @@ app.get('/search', async (req, res) => {
   var query = req.query.search
 
   try {
-    let searchResults = await recentSearchesRedisCache.getRecentSearchResults(query)
+    let searchResults = await redis.getRecentSearchResults(query)
     if (!searchResults) {
       mongoInventory.search(query, (err, results) => {
         if (err) throw err
 
         searchResults = results
-        recentSearchesRedisCache.storeRecentSearchResults(query, searchResults)
+        redis.storeRecentSearchResults(query, searchResults)
         return res.status(200).send(searchResults)
       })
     } else {

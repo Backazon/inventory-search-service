@@ -6,7 +6,7 @@ config:
       name: "Warm up the application"
     - duration: 120
       arrivalRate: 5
-      rampTo: 40
+      rampTo: 30
     # - duration: 600
     #   arrivalRate: 40
     #   name: "Sustained max load"
@@ -45,7 +45,7 @@ scenarios:
               as: "item_id"
         - get:
             url: "/details/{{ item_id }}"
-        count: 100
+        count: 500
 
   # - name: "Submit new item to inventory queue"
   #   flow: 

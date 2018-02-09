@@ -7,41 +7,37 @@ client.on('error', err => {
 
 const { promisify } = require('util')
 
-const setAsync = promisify(client.set).bind(client)
-const getAsync = promisify(client.get).bind(client)
+const hset = promisify(client.hset).bind(client)
+const hget = promisify(client.hget).bind(client)
 
+//trending
+const updateTrendingItemsList = (trendingList) =>
+  hset('trending', 'trending', JSON.stringify(trendingList))
 
-const updateTrendingItemsList = (trendingList) => {
-  return setAsync('trending', JSON.stringify(trendingList))
-}
+const getTrendingItemsList = () => hget('trending', 'trending')
 
-const getTrendingItemsList = () => {
-  return getAsync('trending')
-}
+//recently viewed items
+const storeRecentlyViewedItem = (itemId, item) =>
+  hset('items', itemId, JSON.stringify(item))
 
-const storeRecentlyViewedItem = (itemId, item) => {
-  return setAsync(itemId, JSON.stringify(item))
-}
+const getRecentlyViewedItem = (itemId) => hget('items', itemId)
 
-const getRecentlyViewedItem = (itemId) => {
-  return getAsync(itemId) 
-}
+//recent department searches
+const storeRecentDepartmentSearch = (department, departmentList) =>
+  hset('departments', department, JSON.stringify(departmentList))
 
-const storeRecentDepartmentSearch = (department, departmentList) => {
-  return setAsync(department, JSON.stringify(departmentList))
-}
+const getRecentDepartmentSearch = (department) => 
+  hget('departments', department)
 
-const getRecentDepartmentSearch = (department) => {
-  return getAsync(department)
-}
+//recent searches
+const storeRecentSearchResults = (searchQuery, results) =>
+  hset('searches', searchQuery, JSON.stringify(results))
 
-const storeRecentSearchResults = (searchQuery, results) => {
-  return setAsync(searchQuery, JSON.stringify(results))
-}
+const getRecentSearchResults = (searchQuery) => 
+  hget('searches', searchQuery)
 
-const getRecentSearchResults = (searchQuery) => {
-  return getAsync(searchQuery)
-}
+//flush database
+const flushDatabase = () => client.flushdb()
 
 module.exports = {
   client,
@@ -52,5 +48,6 @@ module.exports = {
   storeRecentDepartmentSearch,
   getRecentDepartmentSearch,
   storeRecentSearchResults,
-  getRecentSearchResults
+  getRecentSearchResults,
+  flushDatabase
 }
