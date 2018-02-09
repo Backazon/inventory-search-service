@@ -21,6 +21,9 @@ const redis = require('../database/redis')
 // INVENTORY DATABASE
 const mongoInventory = require('../database/mongo')
 
+//USER ANALYTICS
+const analytics = require('./analytics.js')
+
 
 // REQUEST HANDLERS
 /***************************************************************************
@@ -61,23 +64,15 @@ app.get('/trending', async (req, res) => {
 })
 
 /***************************************************************************
-TODO: send update to user analytics, format:
-  {
-    UserID    : 123,
-    ProductID : 123,
-    Viewed    : Boolean,
-    Clicked   : Boolean,
-    Purchased : Boolean,
-    Cart      : Boolean,
-    Wishlist  : Boolean,
-    Timestamp : dateTime
-  }
 GET request to '/details', when client clicks on product for more info
 Request object:   { item_id: number }
 Response object:  { full item details object }
 */
 app.get('/details', async (req, res) => {
   var item_id = req.query.item_id
+  
+  //send query to user analytics service
+  analytics.sendQueryToAnalytics(item_id)
 
   try {
     let item = await redis.getRecentlyViewedItem(item_id)
@@ -214,8 +209,6 @@ app.post('/sales', (req, res) => {
 })
 
 /***************************************************************************
-TODO: send update to user analytics
-
 GET request to '/department', when client clicks on category/department
 Request from client:  { query: string }
 Response object:      { [ summarized item objects ] }
@@ -243,7 +236,6 @@ app.get('/department', async (req, res) => {
 
 /***************************************************************************
 TODO; elastic search auto-suggestions?
-TODO: send update to user analytics (TBD - check with Ben on format)
 
 GET request to '/search', when client submits search query in search box
 Request from client:  { query: string }
