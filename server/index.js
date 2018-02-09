@@ -69,10 +69,11 @@ Request object:   { item_id: number }
 Response object:  { full item details object }
 */
 app.get('/details', async (req, res) => {
+  var user_id = user_id || 123
   var item_id = req.query.item_id
-  
+
   //send query to user analytics service
-  analytics.sendQueryToAnalytics(item_id)
+  analytics.sendQueryToAnalytics(user_id, item_id)
 
   try {
     let item = await redis.getRecentlyViewedItem(item_id)

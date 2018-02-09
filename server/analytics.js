@@ -1,15 +1,10 @@
 const axios = require('axios')
 
-const sendQueryToAnalytics = (item_id) => {
+const sendQueryToAnalytics = (user_id, item_id) => {
   
   let query = {
     "UserID"    : 123,
     "ProductID" : item_id,
-    "Viewed"    : true,
-    "Clicked"   : false,
-    "Purchased" : false,
-    "Cart"      : false,
-    "Wishlist"  : false,
     "Timestamp" : new Date()
   }
 
