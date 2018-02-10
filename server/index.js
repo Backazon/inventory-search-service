@@ -14,16 +14,17 @@ app.use(bodyParser.json())
 
 const CronJob = require('cron').CronJob;
 
-// QUEUE
-const newItemQueue = require('./newItemQueue.js')
-// REDIS DATABASE
-const redis = require('../database/redis')
 // INVENTORY DATABASE
 const mongoInventory = require('../database/mongo')
+// REDIS DATABASE
+const redis = require('../database/redis')
+// ELASTIC SEARCH
+const es = require('../database/elasticsearch')
+// QUEUE
+const newItemQueue = require('./newItemQueue.js')
 
 //USER ANALYTICS
 const analytics = require('./analytics.js')
-
 
 // REQUEST HANDLERS
 /***************************************************************************
@@ -32,12 +33,9 @@ Update trending items in Redis cache on daily basis
 const cronjob = new CronJob({
   cronTime: '00 00 00 * * *',
   onTick: () => {
-    console.log('Executing Cron Job', new Date())
-
-    mongoInventory.getTrendingItems(async (err, results) => {
+     mongoInventory.getTrendingItems(async (err, results) => {
       if (err) throw err
-      console.log('Cron job successful', new Date())
-      await redis.flushDatabase()
+      console.log('Updated cached trending items', new Date())
       await redis.updateTrendingItemsList(results)
     })
   }, 
@@ -52,11 +50,18 @@ const cronjob = new CronJob({
 */
 app.get('/trending', async (req, res) => {
   try {
+    // mongoInventory.getTrendingItems(async (err, results) => {
+    //   if (err) throw err
+    //   console.log('Updated cached trending items', new Date())
+    //   await redis.updateTrendingItemsList(results)
+    // })
+    // res.send('Done')
+
     let trendingList = await redis.getTrendingItemsList()
     if (trendingList) {
       return res.status(200).send(JSON.parse(trendingList))
     } else {
-      return res.status(500).send('Error updating trending items in cache')
+      return res.status(500).send('Error retrieving trending items from cache')
     }
   } catch (err) {
     return res.status(500).json(err.stack)
@@ -73,7 +78,7 @@ app.get('/details', async (req, res) => {
   var item_id = req.query.item_id
 
   //send query to user analytics service
-  analytics.sendQueryToAnalytics(user_id, item_id)
+  //analytics.sendQueryToAnalytics(user_id, item_id)
 
   try {
     let item = await redis.getRecentlyViewedItem(item_id)
@@ -216,7 +221,6 @@ Response object:      { [ summarized item objects ] }
 */
 app.get('/department', async (req, res) => {
   var dept = req.query.department
-  console.log(dept)
   
   try {
     let deptList = await redis.getRecentDepartmentSearch(dept)
@@ -247,15 +251,19 @@ app.get('/search', async (req, res) => {
 
   try {
     let searchResults = await redis.getRecentSearchResults(query)
-    if (!searchResults) {
-      mongoInventory.search(query, (err, results) => {
-        if (err) throw err
 
-        searchResults = results
-        redis.storeRecentSearchResults(query, searchResults)
-        return res.status(200).send(searchResults)
+    if (!searchResults) {
+      console.log('Retrieving search results from elastic search...')
+
+      es.getSearchResults(query, (err, results) => {
+        if (err) console.log("Error searching ES", err)
+        
+        redis.storeRecentSearchResults(query, results)
+        return res.status(200).send(results)
       })
+
     } else {
+      console.log('Retrieving search results from redis...')
       return res.status(200).send(JSON.parse(searchResults))
     }
   } catch (err) {
