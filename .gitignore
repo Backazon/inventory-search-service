@@ -9,7 +9,11 @@ package-lock.json
 
 # mongo-connector
 database/mongo-connector
-mongo-connector.log
+mongo-connector.log*
 oplog.timestamp
+dump.rdb
+
+# newrelic
+newrelic_agent.log
 
 .DS_Store

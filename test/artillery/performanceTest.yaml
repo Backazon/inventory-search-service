@@ -3,13 +3,13 @@ config:
   phases:
     - duration: 60
       arrivalRate: 5
-      name: "Warm up the application"
-    - duration: 120
-      arrivalRate: 5
-      rampTo: 30
-    # - duration: 600
+    # - duration: 60
+    #   arrivalRate: 5
+    #   rampTo: 50
+    # - duration: 60
+    #   arrivalRate: 10
+    # - duration: 180
     #   arrivalRate: 40
-    #   name: "Sustained max load"
   payload:
     -
       path: "payloads/departments.csv"
@@ -32,25 +32,28 @@ scenarios:
             as: "item_id"
       - get:
           url: "/details/{{ item_id }}"
-      count: 500
+      count: 100
 
-  - name: "Search by department & view top product"
-    flow:
-      - loop:
-        - get:
-            url: "/department"
-            body: "department={{ department}}"
-            capture:
-              json: "$.results[0].item_id"
-              as: "item_id"
-        - get:
-            url: "/details/{{ item_id }}"
-        count: 500
+
+  # - name: "Search by department & view top product"
+  #   flow:
+  #     - loop:
+  #       - get:
+  #           url: '/department?department="Books"'
+  #           # body: "department={{ department }}"
+  #           capture:
+  #             json: "$.results[0].item_id"
+  #             as: "item_id"
+  #       - get:
+  #           url: "/details/{{ item_id }}"
+  #       count: 100
+
 
   # - name: "Submit new item to inventory queue"
   #   flow: 
   #     - post: 
   #         url: "/submitItem"
+
 
   # - name: "Search by keyword & view top product"
   #   flow:
@@ -58,12 +61,7 @@ scenarios:
   #         url: "/search"
   #         body: "kw={{ keywords }}"
   #         capture:
-  #           json: "$.results[0].id"
-  #           as: "id"
+  #           json: "$.results[0].item_id"
+  #           as: "item_id"
   #     - get:
-  #         url: "/details/{{ id }}"
-  #     - think: 3
-  #     - post:
-  #         url: "/cart"
-  #         json:
-  #           productId: "{{ id }}"
+  #         url: "/details/{{ item_id }}"

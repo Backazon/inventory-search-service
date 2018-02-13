@@ -63,22 +63,10 @@ const getDepartmentList = (department, callback) => {
     })
 }
 
-const search = (query, callback) => {
-  inventory
-    .find({ $text: { $search: query } })
-    .sort({ avg_rating: -1, review_count: -1 })
-    .limit(100)
-    .toArray((err, results) => {
-      if (err) console.error
-      callback(null, results)
-    })
-}
-
 module.exports = {
   findItem,
   getTrendingItems,
   insertNewItem,
   updateInventory,
-  getDepartmentList,
-  search
+  getDepartmentList
 }

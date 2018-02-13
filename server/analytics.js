@@ -1,18 +1,14 @@
 const axios = require('axios')
 
 const sendQueryToAnalytics = (user_id, item_id) => {
-  
-  let query = {
-    "UserID"    : 123,
-    "ProductID" : item_id,
-    "Timestamp" : new Date()
-  }
 
   axios
     .post('/analyticsUrl', {
-      query,
+      UserID: user_id,
+      ProductID: item_id,
+      Timestamp: new Date()
     })
-    .then(() => console.log('Query successfully send to User Analytics'))
+    .then(() => console.log('Query successfully sent to User Analytics'))
     .catch(console.error)
 
 }

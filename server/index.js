@@ -58,14 +58,7 @@ app.get('/inventory/details', async (req, res) => {
   }
 })
 
-
-/*
-TODO: turn into GET request to sales queue
-POST request to '/sales', when orders service receives new sales transaction
-  Orders service data: 
-    data: [ { userid: 1, itemid: 4476, qty: 5, rating: 1 },
-            { userid: 1, itemid: 4463, qty: 3, rating: 3 } ]
-*/
+// POST request to '/sales', when orders service receives new sales transaction
 app.post('/inventory/sales', (req, res) => {
 
   var soldItems = req.body.items 
@@ -82,9 +75,7 @@ app.post('/inventory/sales', (req, res) => {
   res.status(200).send('Inventory successfully updated')
 })
 
-
 //GET request to '/department', when client clicks on category/department
-
 app.get('/inventory/department', async (req, res) => {
   var dept = req.query.department
   
@@ -105,10 +96,7 @@ app.get('/inventory/department', async (req, res) => {
   }
 })
 
-
-// TODO; elastic search auto-suggestions?
 // GET request to '/search', when client submits search query in search box
-
 app.get('/inventory/search', async (req, res) => {
   var query = req.query.search
 
@@ -130,4 +118,3 @@ app.get('/inventory/search', async (req, res) => {
     return res.status(500).json(err.stack)
   }
 })
-

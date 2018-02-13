@@ -31,6 +31,5 @@ const getSearchResults = (string, callback) =>
   })
 
 module.exports = {
-  client,
   getSearchResults
 }
