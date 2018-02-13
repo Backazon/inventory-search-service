@@ -1,13 +1,7 @@
 # Inventory & Search Service
 
-> Inventory & Search Services within an ecommerce SOA that handles maintaining inventory and retrieving search result requests
+> Inventory & Search Services within an ecommerce SOA that handle maintaining inventory and retrieving search result requests
 
-## Team
-
-* Chase Lee
-* Austin Shin
-* Kayleigh Foley
-* Ben Basuni
 
 ## Table of Contents
 
@@ -30,8 +24,6 @@ npm run
 
 * Node 9.4
 * NPM 5.6
-* MongoDB
-* Redis
 
 ### Installing Dependencies
 
