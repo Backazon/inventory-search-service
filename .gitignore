@@ -1,0 +1,25 @@
+# Generated data
+database/data/
+
+# Dependency directories
+node_modules/
+
+# npm
+package-lock.json
+
+# mongo-connector
+database/mongo-connector
+mongo-connector.log*
+oplog.timestamp
+dump.rdb
+
+# newrelic
+newrelic_agent.log
+
+#nyc test coverage tool
+.nyc_output
+
+#eslint
+.eslintrc.js
+
+.DS_Store

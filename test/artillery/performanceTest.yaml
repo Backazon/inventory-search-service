@@ -1,0 +1,67 @@
+config:
+  target: "http://127.0.0.1:3000"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+    # - duration: 60
+    #   arrivalRate: 5
+    #   rampTo: 50
+    # - duration: 60
+    #   arrivalRate: 10
+    # - duration: 180
+    #   arrivalRate: 40
+  payload:
+    -
+      path: "payloads/departments.csv"
+      fields:
+        - "department"
+    # - 
+    #   path: "payloads/keywords.csv"
+    #   fields:
+    #     - "keyword"
+      
+scenarios:
+
+  - name: "Search trending & view top product"
+    flow:
+    - loop:
+      - get:
+          url: "/trending"
+          capture:
+            json: "$.results[0].item_id"
+            as: "item_id"
+      - get:
+          url: "/details/{{ item_id }}"
+      count: 100
+
+
+  # - name: "Search by department & view top product"
+  #   flow:
+  #     - loop:
+  #       - get:
+  #           url: '/department?department="Books"'
+  #           # body: "department={{ department }}"
+  #           capture:
+  #             json: "$.results[0].item_id"
+  #             as: "item_id"
+  #       - get:
+  #           url: "/details/{{ item_id }}"
+  #       count: 100
+
+
+  # - name: "Submit new item to inventory queue"
+  #   flow: 
+  #     - post: 
+  #         url: "/submitItem"
+
+
+  # - name: "Search by keyword & view top product"
+  #   flow:
+  #     - post:
+  #         url: "/search"
+  #         body: "kw={{ keywords }}"
+  #         capture:
+  #           json: "$.results[0].item_id"
+  #           as: "item_id"
+  #     - get:
+  #         url: "/details/{{ item_id }}"
