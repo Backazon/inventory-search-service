@@ -2,10 +2,8 @@ const siege = require('siege');
 
 // siege()
 //   .on(3000)
-//   .for(50000)
+//   .for(100000)
 //   .times.get('/inventory/details', { item_id: 9000023 })
-//   .get('/inventory/department', { department: 'Books' })
-//   // .get('/inventory/trending')
 //   .attack();
 
 // siege()
@@ -16,7 +14,7 @@ const siege = require('siege');
 
 siege()
   .on(3000)
-  .for(1000)
-  .times.get('/inventory/trending')
+  .for(1000).times
+  .get('/inventory/trending')
   .attack();
 
