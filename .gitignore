@@ -10,8 +10,8 @@ package-lock.json
 # mongo-connector
 database/mongo-connector
 mongo-connector.log*
-oplog.timestamp
 dump.rdb
+oplog.timestamp
 
 # newrelic
 newrelic_agent.log
