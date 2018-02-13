@@ -13,15 +13,15 @@ const params = {
   MessageAttributes: {
     "item_id": {
       DataType: "Number",
-      StringValue: "20000001"
+      StringValue: "70"
     },
     "name": {
       DataType: "String",
-      StringValue: "Test Product"
+      StringValue: "Tester"
     },
     "description": {
       DataType: "String",
-      StringValue: "Test"
+      StringValue: "Tester"
     },
     "price": {
       DataType: "Number",
@@ -41,15 +41,15 @@ const params = {
     },
     "category": {
       DataType: "String",
-      StringValue: "Test"
+      StringValue: "Tester"
     },
     "subcategory": {
       DataType: "String",
-      StringValue: "Test"
+      StringValue: "Tester"
     },
     "department": {
       DataType: "String",
-      StringValue: "Test"
+      StringValue: "Tester"
     }
   },
   MessageBody: "New item submitted",

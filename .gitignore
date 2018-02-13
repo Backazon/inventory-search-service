@@ -19,4 +19,7 @@ newrelic_agent.log
 #nyc test coverage tool
 .nyc_output
 
+#eslint
+.eslintrc.js
+
 .DS_Store

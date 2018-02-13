@@ -1,25 +1,29 @@
-const MongoClient = require('mongodb').MongoClient
-var db, inventory
+const mongo = require('mongodb');
 
-//connect to MongoDB on start
-MongoClient.connect('mongodb://localhost:27017/backazon', (err, client) => {
+const Client = mongo.MongoClient;
+
+let db;
+let inventory;
+
+// connect to MongoDB on start
+Client.connect('mongodb://localhost:27017/backazon', (err, client) => {
   if (err) {
-    console.log('Unable to connect to Mongo')
-    process.exit(1)
+    console.log('Unable to connect to Mongo');
+    process.exit(1);
   } else {
-    db = client.db('backazon')
-    inventory = db.collection('inventory')
-    console.log('Connected to MongoDB...')
+    db = client.db('backazon');
+    inventory = db.collection('inventory');
+    console.log('Connected to MongoDB...');
   }
-})
+});
 
-const findItem = (item_id, callback) => {
+const findItem = (itemId, callback) => {
   inventory
-    .findOne({ item_id: item_id }, (err, doc) => {
-      if (err) console.error
-      callback(null, doc)
-    })
-}
+    .findOne({ item_id: itemId }, (err, doc) => {
+      if (err) console.log(err);
+      callback(null, doc);
+    });
+};
 
 const getTrendingItems = (callback) => {
   inventory
@@ -27,30 +31,30 @@ const getTrendingItems = (callback) => {
     .sort({ avg_rating: -1, review_count: -1 })
     .limit(3000)
     .toArray((err, docs) => {
-      if (err) console.error
-      callback(null, docs)
-    })
-}
+      if (err) console.log(err);
+      callback(null, docs);
+    });
+};
 
 const insertNewItem = (item, callback) => {
   inventory
     .insertOne(item, (err) => {
-      if (err) console.error
-      callback(err, null)
-    })
-}
+      if (err) console.log(err);
+      callback(err, null);
+    });
+};
 
-const updateInventory = (item_id, qty_sold, callback) => {
+const updateInventory = (itemId, qtySold, callback) => {
   inventory
     .updateOne(
-      { item_id: parseInt(item_id) }, 
-      { $inc: { inventory: -(parseInt(qty_sold)) } }, 
+      { item_id: Number(itemId) },
+      { $inc: { inventory: -(Number(qtySold)) } },
       (err, result) => {
-        if (err) console.error
-        callback(err, result)
-      }
-    )
-}
+        if (err) console.log(err);
+        callback(err, result);
+      },
+    );
+};
 
 const getDepartmentList = (department, callback) => {
   inventory
@@ -58,15 +62,15 @@ const getDepartmentList = (department, callback) => {
     .sort({ avg_rating: -1, review_count: -1 })
     .limit(100)
     .toArray((err, results) => {
-      if (err) console.error
-      callback(null, results)
-    })
-}
+      if (err) console.log(err);
+      callback(null, results);
+    });
+};
 
 module.exports = {
   findItem,
   getTrendingItems,
   insertNewItem,
   updateInventory,
-  getDepartmentList
-}
+  getDepartmentList,
+};
